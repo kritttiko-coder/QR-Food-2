@@ -1,11 +1,8 @@
-name: Build FoodExpiryApp for Android
+name: Build FoodExpiryApp Android APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
 
@@ -13,100 +10,56 @@ permissions:
   contents: read
 
 jobs:
-  build-android:
-    name: Build Android APK
+  build:
     runs-on: windows-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK
+      - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
+          dotnet-version: 8.0.x
 
-      - name: Find project
-        id: project
+      - name: Pin .NET SDK
         shell: pwsh
         run: |
-          $projects = Get-ChildItem -Path . -Recurse -Filter *.csproj |
-            Where-Object {
-              $_.FullName -notmatch '[\\/](bin|obj)[\\/]'
+          @'
+          {
+            "sdk": {
+              "version": "8.0.400",
+              "rollForward": "latestPatch",
+              "allowPrerelease": false
             }
-
-          if (-not $projects) {
-            throw "No .csproj file found in repository."
           }
+          '@ | Set-Content -Path global.json -Encoding utf8
 
-          $project = $projects |
-            Where-Object { $_.Name -match 'FoodExpiryApp' } |
-            Select-Object -First 1
+          dotnet --version
 
-          if (-not $project) {
-            $project = $projects | Select-Object -First 1
-          }
-
-          $content = Get-Content $project.FullName -Raw
-
-          $frameworks = [regex]::Matches(
-            $content,
-            'net[0-9]+\.[0-9]+-android[0-9.]*'
-          ) | ForEach-Object { $_.Value } |
-            Select-Object -Unique
-
-          if (-not $frameworks) {
-            throw "No Android TargetFramework found in $($project.Name). Check the .csproj file."
-          }
-
-          $framework = $frameworks | Select-Object -First 1
-
-          "PROJECT_PATH=$($project.FullName)" >> $env:GITHUB_OUTPUT
-          "ANDROID_TFM=$framework" >> $env:GITHUB_OUTPUT
-
-          Write-Host "Project: $($project.FullName)"
-          Write-Host "Android target: $framework"
-
-      - name: Install MAUI Android workload
-        run: dotnet workload install maui-android
+      - name: Install Android workload
+        run: dotnet workload install maui-android --skip-manifest-update
 
       - name: Restore dependencies
-        run: dotnet restore "${{ steps.project.outputs.PROJECT_PATH }}"
+        shell: pwsh
+        run: |
+          dotnet restore FoodExpiryApp.csproj `
+            -p:CheckEolWorkloads=false
 
       - name: Build APK
         shell: pwsh
         run: |
-          dotnet publish "${{ steps.project.outputs.PROJECT_PATH }}" `
-            -f "${{ steps.project.outputs.ANDROID_TFM }}" `
+          dotnet publish FoodExpiryApp.csproj `
+            -f net8.0-android `
             -c Release `
             -p:AndroidPackageFormat=apk `
             -p:CheckEolWorkloads=false `
             --no-restore
 
-      - name: Locate APK
-        id: apk
-        shell: pwsh
-        run: |
-          $apk = Get-ChildItem -Path . -Recurse -Filter *.apk |
-            Where-Object {
-              $_.FullName -match '[\\/]bin[\\/]Release[\\/]'
-            } |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-
-          if (-not $apk) {
-            throw "APK was not generated. Check the Build APK logs."
-          }
-
-          "APK_PATH=$($apk.FullName)" >> $env:GITHUB_OUTPUT
-          Write-Host "APK created: $($apk.FullName)"
-
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FoodExpiryApp-Android-APK
-          path: ${{ steps.apk.outputs.APK_PATH }}
+          path: bin/Release/net8.0-android/publish/*.apk
           if-no-files-found: error
           retention-days: 14
