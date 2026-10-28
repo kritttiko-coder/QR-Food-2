@@ -20,14 +20,14 @@ jobs:
       run: dotnet workload install maui
 
     - name: Restore dependencies
-      run: dotnet restore FoodExpiryApp.csproj
+      run: dotnet restore
 
-    # Сборка строго через .csproj (игнорируем сломанный .sln файл)
+    # Универсальная сборка: сама найдет .csproj в любой папке репозитория
     - name: Publish Android APK
       run: |
-        dotnet publish FoodExpiryApp.csproj -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true
+        dotnet publish -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true
 
-    # Поиск файлов строго по всему рабочему пространству
+    # Этот шаг заглянет во ВСЕ папки, найдет готовый APK и положит его в DropBox
     - name: Find and Copy APKs
       run: |
         New-Item -ItemType Directory -Force -Path .\DropBox
@@ -36,7 +36,7 @@ jobs:
         Get-ChildItem -Path .\DropBox
       shell: pwsh
 
-    # Загрузка собранных файлов из DropBox
+    # Безопасная загрузка артефактов из папки DropBox
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
