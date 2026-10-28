@@ -1,50 +1,111 @@
-name: Build MAUI Android APK
+name: Build FoodExpiryApp for Android
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
-# Отключаем ебучую проверку EOL глобально для всей виртуальной машины
-env:
-  CheckEolTargetFramework: "false"
-  CheckEolWorkloads: "false"
-  MSBUILDDISABLENETSDK1202: "true"
+permissions:
+  contents: read
 
 jobs:
-  build:
+  build-android:
+    name: Build Android APK
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup .NET SDK
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
 
-    - name: Install MAUI Workload
-      run: dotnet workload install maui
+      - name: Find project
+        id: project
+        shell: pwsh
+        run: |
+          $projects = Get-ChildItem -Path . -Recurse -Filter *.csproj |
+            Where-Object {
+              $_.FullName -notmatch '[\\/](bin|obj)[\\/]'
+            }
 
-    - name: Restore dependencies
-      run: dotnet restore FoodExpiryApp.csproj
+          if (-not $projects) {
+            throw "No .csproj file found in repository."
+          }
 
-    # Сборка без единого шанса для ошибки NETSDK1202
-    - name: Publish Android APK
-      run: |
-        dotnet publish FoodExpiryApp.csproj -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true
+          $project = $projects |
+            Where-Object { $_.Name -match 'FoodExpiryApp' } |
+            Select-Object -First 1
 
-    # Скрипт перенесет APK в DropBox
-    - name: Find and Copy APKs
-      run: |
-        New-Item -ItemType Directory -Force -Path .\DropBox
-        Get-ChildItem -Path . -Recurse -Include *.apk, *.aab | Copy-Item -Destination .\DropBox\
-        Write-Host "Содержимое папки DropBox:"
-        Get-ChildItem -Path .\DropBox
-      shell: pwsh
+          if (-not $project) {
+            $project = $projects | Select-Object -First 1
+          }
 
-    # Загружаем готовый APK в артефакты
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: maui-android-apk
-        path: .\DropBox\
+          $content = Get-Content $project.FullName -Raw
+
+          $frameworks = [regex]::Matches(
+            $content,
+            'net[0-9]+\.[0-9]+-android[0-9.]*'
+          ) | ForEach-Object { $_.Value } |
+            Select-Object -Unique
+
+          if (-not $frameworks) {
+            throw "No Android TargetFramework found in $($project.Name). Check the .csproj file."
+          }
+
+          $framework = $frameworks | Select-Object -First 1
+
+          "PROJECT_PATH=$($project.FullName)" >> $env:GITHUB_OUTPUT
+          "ANDROID_TFM=$framework" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Project: $($project.FullName)"
+          Write-Host "Android target: $framework"
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ steps.project.outputs.PROJECT_PATH }}"
+
+      - name: Build APK
+        shell: pwsh
+        run: |
+          dotnet publish "${{ steps.project.outputs.PROJECT_PATH }}" `
+            -f "${{ steps.project.outputs.ANDROID_TFM }}" `
+            -c Release `
+            -p:AndroidPackageFormat=apk `
+            --no-restore
+
+      - name: Locate APK
+        id: apk
+        shell: pwsh
+        run: |
+          $apk = Get-ChildItem -Path . -Recurse -Filter *.apk |
+            Where-Object {
+              $_.FullName -match '[\\/]bin[\\/]Release[\\/]'
+            } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (-not $apk) {
+            throw "APK was not generated. Check the Build APK logs."
+          }
+
+          "APK_PATH=$($apk.FullName)" >> $env:GITHUB_OUTPUT
+          Write-Host "APK created: $($apk.FullName)"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FoodExpiryApp-Android-APK
+          path: ${{ steps.apk.outputs.APK_PATH }}
+          if-no-files-found: error
+          retention-days: 14
