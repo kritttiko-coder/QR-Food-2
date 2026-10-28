@@ -3,6 +3,12 @@ name: Build MAUI Android APK
 on:
   workflow_dispatch:
 
+# Отключаем ебучую проверку EOL глобально для всей виртуальной машины
+env:
+  CheckEolTargetFramework: "false"
+  CheckEolWorkloads: "false"
+  MSBUILDDISABLENETSDK1202: "true"
+
 jobs:
   build:
     runs-on: windows-latest
@@ -11,25 +17,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Жестко ставим старую версию SDK 8.0.204, где net8.0-android НЕ заблокирован
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.204'
+        dotnet-version: '8.0.x'
 
-    # Принудительно ставим воркфлоу именно для восьмой версии
     - name: Install MAUI Workload
-      run: dotnet workload install maui --sdk-version 8.0.204
+      run: dotnet workload install maui
 
     - name: Restore dependencies
       run: dotnet restore FoodExpiryApp.csproj
 
-    # Собираем проект напрямую через .csproj
+    # Сборка без единого шанса для ошибки NETSDK1202
     - name: Publish Android APK
       run: |
         dotnet publish FoodExpiryApp.csproj -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true
 
-    # Скрипт гарантированно вытащит APK, где бы он ни лежал
+    # Скрипт перенесет APK в DropBox
     - name: Find and Copy APKs
       run: |
         New-Item -ItemType Directory -Force -Path .\DropBox
