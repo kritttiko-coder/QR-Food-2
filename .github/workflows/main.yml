@@ -11,24 +11,25 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Жестко ставим старую версию SDK 8.0.204, где net8.0-android НЕ заблокирован
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '8.0.204'
 
+    # Принудительно ставим воркфлоу именно для восьмой версии
     - name: Install MAUI Workload
-      run: dotnet workload install maui
+      run: dotnet workload install maui --sdk-version 8.0.204
 
-    # Исправленный флаг для пропуска проверки устаревших систем компонентов (Workloads)
     - name: Restore dependencies
-      run: dotnet restore FoodExpiryApp.csproj /p:CheckEolWorkloads=false
+      run: dotnet restore FoodExpiryApp.csproj
 
-    # Сборка строго через .csproj с правильным отключением защиты EOL
+    # Собираем проект напрямую через .csproj
     - name: Publish Android APK
       run: |
-        dotnet publish FoodExpiryApp.csproj -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true /p:CheckEolWorkloads=false
+        dotnet publish FoodExpiryApp.csproj -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true
 
-    # Поиск файлов строго по всему рабочему пространству
+    # Скрипт гарантированно вытащит APK, где бы он ни лежал
     - name: Find and Copy APKs
       run: |
         New-Item -ItemType Directory -Force -Path .\DropBox
@@ -37,7 +38,7 @@ jobs:
         Get-ChildItem -Path .\DropBox
       shell: pwsh
 
-    # Загрузка собранных файлов из DropBox
+    # Загружаем готовый APK в артефакты
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
