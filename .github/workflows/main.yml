@@ -82,6 +82,7 @@ jobs:
             -f "${{ steps.project.outputs.ANDROID_TFM }}" `
             -c Release `
             -p:AndroidPackageFormat=apk `
+            -p:CheckEolWorkloads=false `
             --no-restore
 
       - name: Locate APK
