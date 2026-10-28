@@ -19,14 +19,14 @@ jobs:
     - name: Install MAUI Workload
       run: dotnet workload install maui
 
-    # Разрешаем восстановление зависимостей для устаревшего net8.0
+    # Исправленный флаг для пропуска проверки устаревших систем компонентов (Workloads)
     - name: Restore dependencies
-      run: dotnet restore FoodExpiryApp.csproj /p:CheckEolTargetFramework=false
+      run: dotnet restore FoodExpiryApp.csproj /p:CheckEolWorkloads=false
 
-    # Добавлен специальный флаг /p:CheckEolTargetFramework=false, который отключает блокировку сборки
+    # Сборка строго через .csproj с правильным отключением защиты EOL
     - name: Publish Android APK
       run: |
-        dotnet publish FoodExpiryApp.csproj -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true /p:CheckEolTargetFramework=false
+        dotnet publish FoodExpiryApp.csproj -c Release -f net8.0-android /p:AndroidBuildApplicationPackage=true /p:CheckEolWorkloads=false
 
     # Поиск файлов строго по всему рабочему пространству
     - name: Find and Copy APKs
