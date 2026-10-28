@@ -1,0 +1,1 @@
+using Microsoft.Maui.Graphics; namespace FoodExpiryApp; public static class CategoryStyle { public static Color Tint(string c)=>c switch {"Молочные"=>Color.FromArgb("#30FFFFFF"),"Напитки"=>Color.FromArgb("#333EAAFF"),"Мясо и рыба"=>Color.FromArgb("#35FF526B"),"Овощи и фрукты"=>Color.FromArgb("#303BCB75"),"Заморозка"=>Color.FromArgb("#334F91FF"),_=>Color.FromArgb("#354F2C78")}; }
