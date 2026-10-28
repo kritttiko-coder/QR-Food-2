@@ -1,3 +1,5 @@
+using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Layouts;
 using FoodExpiryApp.Models; using Microsoft.Maui.Controls; namespace FoodExpiryApp;
 public class MainPage:ContentPage {
  readonly ProductRepository repo; readonly SearchBar search=new(){Placeholder="Поиск по названию, бренду или коду"}; readonly VerticalStackLayout cards=new(){Spacing=10}; int density=0; List<Product> all=new();
