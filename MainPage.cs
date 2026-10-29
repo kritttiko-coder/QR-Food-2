@@ -367,31 +367,42 @@ public class MainPage : ContentPage
         };
 
         menuButton.Clicked += async (_, _) =>
-        {
-            var choice = await DisplayActionSheet(
-                product.Name,
-                "Отмена",
-                null,
-                "Удалить один экземпляр",
-                "Удалить все экземпляры");
+{
+    var options = new List<string>
+    {
+        "Изменить характеристики",
+        "Удалить один экземпляр"
+    };
 
-            if (choice == "Удалить один экземпляр")
-            {
-                await repo.Delete(items[0]);
-            }
-            else if (choice == "Удалить все экземпляры")
-            {
-                foreach (var item in items)
-                    await repo.Delete(item);
-            }
-            else
-            {
-                return;
-            }
+    if (items.Count > 1)
+        options.Add("Удалить все экземпляры");
 
-            all = await repo.All();
-            Render();
-        };
+    var choice = await DisplayActionSheet(
+        product.Name,
+        "Отмена",
+        null,
+        options.ToArray());
+
+    if (choice == "Изменить характеристики")
+    {
+        await Navigation.PushAsync(
+            new ProductEditPage(repo, items[0]));
+    }
+    else if (choice == "Удалить один экземпляр")
+    {
+        await repo.Delete(items[0]);
+        all = await repo.All();
+        Render();
+    }
+    else if (choice == "Удалить все экземпляры")
+    {
+        foreach (var item in items)
+            await repo.Delete(item);
+
+        all = await repo.All();
+        Render();
+    }
+};
 
         var deleteButton = new Button
         {
