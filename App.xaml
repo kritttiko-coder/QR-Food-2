@@ -1,2 +1,23 @@
+
 <?xml version="1.0" encoding="UTF-8" ?>
-<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="FoodExpiryApp.App"><Application.Resources><ResourceDictionary><Color x:Key="AppBackground">#111116</Color><Color x:Key="Surface">#202027</Color><Color x:Key="Accent">#A978F5</Color><Color x:Key="TextPrimary">#F6F3FA</Color><Color x:Key="TextSecondary">#B7B2C1</Color></ResourceDictionary></Application.Resources></Application>
+<Application
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="FoodExpiryApp.App">
+
+    <Application.Resources>
+        <ResourceDictionary>
+
+            <Color x:Key="AppBackground">#111116</Color>
+            <Color x:Key="AppSurface">#201D28</Color>
+            <Color x:Key="AppSurfaceAlt">#292431</Color>
+            <Color x:Key="AppText">#FFFFFF</Color>
+            <Color x:Key="AppSecondaryText">#B7B2C1</Color>
+            <Color x:Key="AppField">#191720</Color>
+            <Color x:Key="AppBorder">#383242</Color>
+            <Color x:Key="AppAccent">#A978F5</Color>
+            <Color x:Key="AppAccentText">#17121F</Color>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
