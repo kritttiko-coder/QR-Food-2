@@ -1,7 +1,81 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:label="FoodExpiryApp"
-        android:supportsRtl="true" />
+        android:supportsRtl="true">
+
+        <!-- MainActivity должна быть exported=true и БЕЗ MAIN/LAUNCHER -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true" />
+
+        <activity-alias
+            android:name=".LauncherClassic"
+            android:targetActivity=".MainActivity"
+            android:icon="@drawable/appicon_classic"
+            android:label="FoodExpiryApp"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherWinter"
+            android:targetActivity=".MainActivity"
+            android:icon="@drawable/appicon_winter"
+            android:label="FoodExpiryApp"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherHalloween"
+            android:targetActivity=".MainActivity"
+            android:icon="@drawable/appicon_halloween"
+            android:label="FoodExpiryApp"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherMonochrome"
+            android:targetActivity=".MainActivity"
+            android:icon="@drawable/appicon_monochrome"
+            android:label="FoodExpiryApp"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherNeon"
+            android:targetActivity=".MainActivity"
+            android:icon="@drawable/appicon_neon"
+            android:label="FoodExpiryApp"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+    </application>
 </manifest>
