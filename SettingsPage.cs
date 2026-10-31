@@ -101,7 +101,7 @@ public class SettingsPage : ContentPage
             Text = "FoodExpiryApp · версия 0.2.0",
             TextColor = muted,
             FontSize = 12,
-            HorizontalTextAlignment = TextAlignment.Center,
+            HorizontalOptions = LayoutOptions.Center
             Margin = new Thickness(0, 8, 0, 0)
         };
 
