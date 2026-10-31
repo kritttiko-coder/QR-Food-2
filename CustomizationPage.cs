@@ -106,7 +106,7 @@ public class CustomizationPage : ContentPage
             BackgroundColor = Color.FromArgb(color),
             TextColor = id == "light" ? Colors.Black : Colors.White,
             BorderColor = selected ? ThemeManager.Accent :
-                Color.FromArgb("#48434F"),
+            Color.FromArgb("#48434F"),
             BorderWidth = selected ? 2 : 1,
             CornerRadius = 14,
             HeightRequest = 76,
