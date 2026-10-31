@@ -139,7 +139,7 @@ public class SettingsPage : ContentPage
             TextColor = Colors.White,
             BorderColor = Color.FromArgb("#383242"),
             BorderWidth = 1,
-            HorizontalTextAlignment = TextAlignment.Start,
+            HorizontalTextAlignment = LayoutOptions.Center,
             Padding = new Thickness(16, 8)
         };
 
