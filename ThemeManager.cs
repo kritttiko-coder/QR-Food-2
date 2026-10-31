@@ -4,25 +4,28 @@ using Microsoft.Maui.Storage;
 
 namespace FoodExpiryApp;
 
-public static string CurrentTheme
-{
-    get => Preferences.Get("CurrentTheme", "Dark");
-    set => Preferences.Set("CurrentTheme", value);
-}
-
-public static string CurrentAccent
-{
-    get => Preferences.Get("CurrentAccent", "#A978F5");
-    set => Preferences.Set("CurrentAccent", value);
-}
-
-public static string CurrentIcon
-{
-    get => Preferences.Get("CurrentIcon", "Classic");
-    set => Preferences.Set("CurrentIcon", value);
-}
 public static class ThemeManager
 {
+    public static string CurrentTheme
+    {
+        get => Preferences.Get("CurrentTheme", "Dark");
+        set => Preferences.Set("CurrentTheme", value);
+    }
+
+    public static string CurrentAccent
+    {
+        get => Preferences.Get("CurrentAccent", "#A978F5");
+        set => Preferences.Set("CurrentAccent", value);
+    }
+
+    public static string CurrentIcon
+    {
+        get => Preferences.Get("CurrentIcon", "Classic");
+        set => Preferences.Set("CurrentIcon", value);
+    }
+
+    public static Color AccentColor =>
+        Color.FromArgb(CurrentAccent);
     public const string Background = "AppBackground";
     public const string Surface = "AppSurface";
     public const string SurfaceAlt = "AppSurfaceAlt";
