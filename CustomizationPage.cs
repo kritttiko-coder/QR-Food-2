@@ -105,7 +105,7 @@ public class CustomizationPage : ContentPage
             Text = (selected ? "✓\n" : "") + title,
             BackgroundColor = Color.FromArgb(color),
             TextColor = id == "light" ? Colors.Black : Colors.White,
-            BorderColor = selected ? ThemeManager.Accent :
+            BorderColor = selected ? Color.FromArgb(ThemeManager.CurrentAccent) : Color.FromArgb("#48434F"),
             Color.FromArgb("#48434F"),
             BorderWidth = selected ? 2 : 1,
             CornerRadius = 14,
@@ -199,7 +199,7 @@ public class CustomizationPage : ContentPage
                 CornerRadius = 14,
                 BackgroundColor = Color.FromArgb("#201D28"),
                 TextColor = Colors.White,
-                BorderColor = selected ? ThemeManager.Accent :
+                BorderColor = sel ? Color.FromArgb(ThemeManager.CurrentAccent) : Color.FromArgb("#383242"),
                     Color.FromArgb("#383242"),
                 BorderWidth = selected ? 2 : 1,
                 FontSize = 14
@@ -230,8 +230,8 @@ public class CustomizationPage : ContentPage
 
         var preview = new Border
         {
-            BackgroundColor = Color.FromArgb("#201D28"),
-            Stroke = ThemeManager.Accent,
+            BackgroundColor = Color.FromArgb("#201D28"), 
+            Stroke = Color.FromArgb(ThemeManager.CurrentAccent),
             StrokeThickness = 2,
             StrokeShape = new RoundRectangle
             {
