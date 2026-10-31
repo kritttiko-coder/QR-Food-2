@@ -24,8 +24,6 @@ public static class ThemeManager
         set => Preferences.Set("CurrentIcon", value);
     }
 
-    public static Color AccentColor =>
-        Color.FromArgb(CurrentAccent);
     public const string Background = "AppBackground";
     public const string Surface = "AppSurface";
     public const string SurfaceAlt = "AppSurfaceAlt";
@@ -45,9 +43,9 @@ public static class ThemeManager
     public static string Icon =>
         Preferences.Default.Get("app_icon", "classic");
 
-    public static Color AccentColor =>
-        Color.FromArgb(AccentHex);
-
+    public static Color AccentColor => 
+        Color.FromArgb(CurrentAccent);
+    
     static Color C(string hex) => Color.FromArgb(hex);
 
     public static void Apply()
