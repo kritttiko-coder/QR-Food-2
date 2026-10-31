@@ -1,5 +1,8 @@
 
 using FoodExpiryApp.Models;
+using FoodExpiryApp.Services;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.Graphics;
 
 namespace FoodExpiryApp;
 
@@ -8,68 +11,56 @@ public class ProductEditPage : ContentPage
     private readonly ProductRepository repo;
     private readonly Product? editingProduct;
 
+    private static readonly string[] Categories =
+    {
+        "Молочные",
+        "Напитки",
+        "Мясо и рыба",
+        "Овощи и фрукты",
+        "Заморозка",
+        "Другое"
+    };
+
     private readonly Entry name = new()
     {
         Placeholder = "Название",
-        TextColor = Colors.White,
-        PlaceholderColor = Color.FromArgb("#AAA3B5"),
-        BackgroundColor = Color.FromArgb("#25232C")
+        PlaceholderColor = Color.FromArgb("#AAA3B5")
     };
 
     private readonly Entry brand = new()
     {
         Placeholder = "Бренд",
-        TextColor = Colors.White,
-        PlaceholderColor = Color.FromArgb("#AAA3B5"),
-        BackgroundColor = Color.FromArgb("#25232C")
+        PlaceholderColor = Color.FromArgb("#AAA3B5")
     };
 
     private readonly Entry variant = new()
     {
         Placeholder = "Разновидность, например 2.5%",
-        TextColor = Colors.White,
-        PlaceholderColor = Color.FromArgb("#AAA3B5"),
-        BackgroundColor = Color.FromArgb("#25232C")
+        PlaceholderColor = Color.FromArgb("#AAA3B5")
     };
 
     private readonly Entry volume = new()
     {
         Placeholder = "Объём / масса, например 0,930 л",
-        TextColor = Colors.White,
-        PlaceholderColor = Color.FromArgb("#AAA3B5"),
-        BackgroundColor = Color.FromArgb("#25232C")
+        PlaceholderColor = Color.FromArgb("#AAA3B5")
     };
 
     private readonly Entry code = new()
     {
         Placeholder = "Штрихкод / код маркировки",
-        TextColor = Colors.White,
-        PlaceholderColor = Color.FromArgb("#AAA3B5"),
-        BackgroundColor = Color.FromArgb("#25232C")
+        PlaceholderColor = Color.FromArgb("#AAA3B5")
     };
 
     private readonly Picker category = new()
     {
         Title = "Категория",
-        TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#25232C"),
-        ItemsSource = new[]
-        {
-            "Молочные",
-            "Напитки",
-            "Мясо и рыба",
-            "Овощи и фрукты",
-            "Заморозка",
-            "Другое"
-        },
+        ItemsSource = Categories,
         SelectedIndex = 5
     };
 
     private readonly DatePicker expiry = new()
     {
-        Date = DateTime.Today.AddDays(7),
-        TextColor = Colors.White,
-        BackgroundColor = Color.FromArgb("#25232C")
+        Date = AppClock.Now.Date.AddDays(7)
     };
 
     public ProductEditPage(ProductRepository r, Product? product = null)
@@ -79,8 +70,9 @@ public class ProductEditPage : ContentPage
 
         bool isEditing = editingProduct != null;
 
-        Title = isEditing ? "Редактировать продукт" : "Добавить продукт";
-        BackgroundColor = Color.FromArgb("#111016");
+        Title = isEditing
+            ? "Редактировать продукт"
+            : "Добавить продукт";
 
         if (isEditing)
         {
@@ -92,8 +84,9 @@ public class ProductEditPage : ContentPage
             expiry.Date = product.ExpiryDate.Date;
 
             int index = Array.IndexOf(
-                (string[])category.ItemsSource,
-                product.Category);
+                Categories,
+                product.Category
+            );
 
             category.SelectedIndex = index >= 0 ? index : 5;
         }
@@ -102,15 +95,21 @@ public class ProductEditPage : ContentPage
         {
             Text = isEditing ? "Изменить продукт" : "Новый продукт",
             FontSize = 26,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
+            FontAttributes = FontAttributes.Bold
+        };
+
+        var expiryLabel = new Label
+        {
+            Text = "Срок годности",
+            FontSize = 16
         };
 
         var save = new Button
         {
-            Text = isEditing ? "Сохранить изменения" : "Сохранить",
-            BackgroundColor = Color.FromArgb("#A978F5"),
-            TextColor = Colors.White,
+            Text = isEditing
+                ? "Сохранить изменения"
+                : "Сохранить",
+
             CornerRadius = 16,
             HeightRequest = 56,
             FontAttributes = FontAttributes.Bold
@@ -118,32 +117,96 @@ public class ProductEditPage : ContentPage
 
         save.Clicked += Save;
 
-        Content = new ScrollView
+        var layout = new VerticalStackLayout
         {
-            Content = new VerticalStackLayout
+            Padding = 22,
+            Spacing = 14,
+            Children =
             {
-                Padding = 22,
-                Spacing = 14,
-                Children =
-                {
-                    heading,
-                    name,
-                    brand,
-                    variant,
-                    volume,
-                    code,
-                    category,
-                    new Label
-                    {
-                        Text = "Срок годности",
-                        TextColor = Colors.White,
-                        FontSize = 16
-                    },
-                    expiry,
-                    save
-                }
+                heading,
+                name,
+                brand,
+                variant,
+                volume,
+                code,
+                category,
+                expiryLabel,
+                expiry,
+                save
             }
         };
+
+        Content = new ScrollView
+        {
+            Content = layout
+        };
+
+        // Привязка оформления к текущей теме
+        ThemeManager.BindPage(this);
+
+        // Заголовок и обычный текст
+        heading.SetDynamicResource(
+            Label.TextColorProperty,
+            "AppText"
+        );
+
+        expiryLabel.SetDynamicResource(
+            Label.TextColorProperty,
+            "AppText"
+        );
+
+        // Поля ввода
+        BindEntryTheme(name);
+        BindEntryTheme(brand);
+        BindEntryTheme(variant);
+        BindEntryTheme(volume);
+        BindEntryTheme(code);
+
+        // Категория
+        category.SetDynamicResource(
+            Picker.TextColorProperty,
+            "AppText"
+        );
+
+        category.SetDynamicResource(
+            Picker.BackgroundColorProperty,
+            "AppField"
+        );
+
+        // Дата окончания срока годности
+        expiry.SetDynamicResource(
+            DatePicker.TextColorProperty,
+            "AppText"
+        );
+
+        expiry.SetDynamicResource(
+            DatePicker.BackgroundColorProperty,
+            "AppField"
+        );
+
+        // Кнопка сохранения
+        save.SetDynamicResource(
+            Button.BackgroundColorProperty,
+            "AppAccent"
+        );
+
+        save.SetDynamicResource(
+            Button.TextColorProperty,
+            "AppAccentText"
+        );
+    }
+
+    private static void BindEntryTheme(Entry entry)
+    {
+        entry.SetDynamicResource(
+            Entry.TextColorProperty,
+            "AppText"
+        );
+
+        entry.SetDynamicResource(
+            Entry.BackgroundColorProperty,
+            "AppField"
+        );
     }
 
     private async void Save(object? sender, EventArgs e)
@@ -153,12 +216,14 @@ public class ProductEditPage : ContentPage
             await DisplayAlert(
                 "Название",
                 "Введите название продукта.",
-                "ОК");
+                "ОК"
+            );
+
             return;
         }
 
-        // При редактировании используем существующую запись,
-        // сохраняя её Id. При добавлении создаём новую.
+        // При редактировании сохраняем существующую запись
+        // и её Id. При добавлении создаём новую.
         var product = editingProduct ?? new Product();
 
         product.Name = name.Text.Trim();
@@ -166,7 +231,9 @@ public class ProductEditPage : ContentPage
         product.Variant = variant.Text?.Trim() ?? "";
         product.Volume = volume.Text?.Trim() ?? "";
         product.Barcode = code.Text?.Trim() ?? "";
-        product.Category = category.SelectedItem?.ToString() ?? "Другое";
+        product.Category =
+            category.SelectedItem?.ToString() ?? "Другое";
+
         product.ExpiryDate = expiry.Date.Date;
 
         try
@@ -179,7 +246,8 @@ public class ProductEditPage : ContentPage
             await DisplayAlert(
                 "Ошибка сохранения",
                 ex.Message,
-                "ОК");
+                "ОК"
+            );
         }
     }
 }
