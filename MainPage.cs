@@ -352,8 +352,8 @@ public class MainPage : ContentPage
 
         var expiryLabels = new FlexLayout
         {
-            Direction = FlexDirection.Row,
-            Wrap = FlexWrap.Wrap
+            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap
         };
 
         foreach (var item in items)
