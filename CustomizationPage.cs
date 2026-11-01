@@ -106,7 +106,6 @@ public class CustomizationPage : ContentPage
             BackgroundColor = Color.FromArgb(color),
             TextColor = id == "light" ? Colors.Black : Colors.White,
             BorderColor = selected ? Color.FromArgb(ThemeManager.CurrentAccent) : Color.FromArgb("#48434F"),
-            Color.FromArgb("#48434F"),
             BorderWidth = selected ? 2 : 1,
             CornerRadius = 14,
             HeightRequest = 76,
@@ -199,8 +198,7 @@ public class CustomizationPage : ContentPage
                 CornerRadius = 14,
                 BackgroundColor = Color.FromArgb("#201D28"),
                 TextColor = Colors.White,
-                BorderColor = sel ? Color.FromArgb(ThemeManager.CurrentAccent) : Color.FromArgb("#383242"),
-                    Color.FromArgb("#383242"),
+                BorderColor = selected ? Color.FromArgb(ThemeManager.CurrentAccent) : Color.FromArgb("#383242"),
                 BorderWidth = selected ? 2 : 1,
                 FontSize = 14
             };
