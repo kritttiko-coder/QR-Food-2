@@ -22,7 +22,14 @@ public class SettingsPage : ContentPage
             FontAttributes = FontAttributes.Bold,
             TextColor = Colors.White
         };
-
+        
+        var subtitle = new Label
+        {
+            Text = "Персонализируйте и изменяйте приложение под себя",
+            FontSize = 13,
+            TextColor = muted
+        }; 
+        
         var lang = new Picker
         {
             Title = "Язык приложения",
