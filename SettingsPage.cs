@@ -23,13 +23,6 @@ public class SettingsPage : ContentPage
             TextColor = Colors.White
         };
 
-        var subtitle = new Label
-        {
-            Text = "Персонализируйте приложение под себя",
-            FontSize = 13,
-            TextColor = muted
-        };
-
         var lang = new Picker
         {
             Title = "Язык приложения",
@@ -62,7 +55,7 @@ public class SettingsPage : ContentPage
         };
 
         var appearance = CreateMenuButton(
-            "🎨", "Внешний вид",
+            "картинка ", "Внешний вид",
             "Тема, акцентный цвет и иконка");
 
         appearance.Clicked += async (_, _) =>
