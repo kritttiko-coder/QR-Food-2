@@ -5,8 +5,10 @@ using Microsoft.Maui;
 namespace FoodExpiryApp;
 
 [Activity(
+    
+    Name = "<ApplicationId>com.example.foodexpiryapp</ApplicationId>",
     Theme = "@style/Maui.SplashTheme",
-    MainLauncher = true,
+    Exported = true,
     ConfigurationChanges =
         ConfigChanges.ScreenSize |
         ConfigChanges.Orientation |
