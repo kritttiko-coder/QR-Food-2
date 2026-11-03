@@ -18,20 +18,23 @@ public static class IconSwitcher
     public static void Apply(string iconId)
     {
         var ctx = global::Android.App.Application.Context;
+        if (ctx == null) return;
+
         var pm  = ctx.PackageManager;
         var pkg = ctx.PackageName;
+        if (pm == null || string.IsNullOrEmpty(pkg)) return;
 
         if (!Aliases.TryGetValue(iconId, out var target))
             target = Aliases["classic"];
 
-        // 1) Сначала включаем выбранный — чтобы лаунчер не остался без точки входа
-        SetState(pm, pkg, target, ComponentEnabledState.Enabled);
+        // 1) Сначала включаем выбранный — лаунчер не должен остаться без точки входа
+        SetState(pm, pkg!, target, ComponentEnabledState.Enabled);
 
         // 2) Затем гасим остальные
         foreach (var name in Aliases.Values)
         {
             if (name == target) continue;
-            SetState(pm, pkg, name, ComponentEnabledState.Disabled);
+            SetState(pm, pkg!, name, ComponentEnabledState.Disabled);
         }
     }
 
@@ -41,8 +44,11 @@ public static class IconSwitcher
         try
         {
             var component = new ComponentName(pkg, $"{pkg}.{alias}");
-            // 1 = PackageManager.DONT_KILL_APP: не убивать процесс при смене состояния
-            pm.SetComponentEnabledSetting(component, state, (ComponentEnabledState)1);
+            // ✅ 3-й аргумент — ComponentEnableOption, а не ComponentEnabledState
+            pm.SetComponentEnabledSetting(
+                component,
+                state,
+                ComponentEnableOption.DontKillApp);
         }
         catch (Exception ex)
         {
