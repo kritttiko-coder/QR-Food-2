@@ -1,0 +1,45 @@
+namespace FoodExpiryApp
+{
+    public static class AppIconService
+    {
+        public static void ChangeAppIcon(string aliasName)
+        {
+#if ANDROID
+            var context = Microsoft.Maui.ApplicationModel.Platform.CurrentActivity;
+            if (context == null) return;
+
+            var packageManager = context.PackageManager;
+            var packageName = context.PackageName;
+            if (packageManager == null || string.IsNullOrEmpty(packageName)) return;
+
+            // Список всех алиасов из вашего AndroidManifest.xml
+            var aliases = new[] 
+            { 
+                ".LauncherClassic", 
+                ".LauncherWinter", 
+                ".LauncherHalloween", 
+                ".LauncherMonochrome", 
+                ".LauncherNeon" 
+            };
+
+            foreach (var alias in aliases)
+            {
+                // Формируем полное имя компонента (например: com.company.FoodExpiryApp.LauncherWinter)
+                var componentName = new Android.Content.ComponentName(packageName, packageName + alias);
+                
+                // Проверяем, совпадает ли текущий алиас с выбранным пользователем
+                var newState = (alias == aliasName) 
+                    ? Android.Content.PM.ComponentEnabledState.Enabled 
+                    : Android.Content.PM.ComponentEnabledState.Disabled;
+
+                // Переключаем состояние компонента
+                packageManager.SetComponentEnabledSetting(
+                    componentName,
+                    newState,
+                    Android.Content.PM.ComponentEnableFlags.DontKillApp
+                );
+            }
+#endif
+        }
+    }
+}
