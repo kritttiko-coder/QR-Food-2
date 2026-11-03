@@ -5,8 +5,7 @@ using Microsoft.Maui;
 namespace FoodExpiryApp;
 
 [Activity(
-    
-    Name = "<ApplicationId>com.example.foodexpiryapp</ApplicationId>",
+    Name = "com.example.foodexpiryapp.MainActivity",    
     Theme = "@style/Maui.SplashTheme",
     Exported = true,
     ConfigurationChanges =
