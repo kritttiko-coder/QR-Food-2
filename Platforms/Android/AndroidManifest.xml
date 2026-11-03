@@ -15,7 +15,7 @@
         <activity-alias
             android:name=".LauncherClassic"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_classic_food-qr"
+            android:icon="@drawable/appicon_classic_food_qr"
             android:label="FoodExpiryApp"
             android:enabled="true"
             android:exported="true">
@@ -28,7 +28,7 @@
         <activity-alias
             android:name=".LauncherWinter"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_winter_food-qr"
+            android:icon="@drawable/appicon_winter_food_qr"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
@@ -41,7 +41,7 @@
         <activity-alias
             android:name=".LauncherHalloween"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_halloween_food-qr"
+            android:icon="@drawable/appicon_halloween_food_qr"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
@@ -54,7 +54,7 @@
         <activity-alias
             android:name=".LauncherMonochrome"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_monochrome_food-qr"
+            android:icon="@drawable/appicon_monochrome_food_qr"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
@@ -67,7 +67,7 @@
         <activity-alias
             android:name=".LauncherNeon"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_neon_food-qr"
+            android:icon="@drawable/appicon_neon_food_qr"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
