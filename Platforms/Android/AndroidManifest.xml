@@ -7,11 +7,6 @@
         android:label="FoodExpiryApp"
         android:supportsRtl="true">
 
-        <!-- MainActivity должна быть exported=true и БЕЗ MAIN/LAUNCHER -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="true" />
-
         <activity-alias
             android:name=".LauncherClassic"
             android:targetActivity=".MainActivity"
