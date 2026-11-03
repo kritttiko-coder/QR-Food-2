@@ -1,4 +1,3 @@
-
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
@@ -29,50 +28,60 @@ public class CustomizationPage : ContentPage
     public CustomizationPage()
     {
         Title = "Внешний вид";
-        BackgroundColor = Color.FromArgb("#111116");
-
+        ThemeManager.BindPage(this); // фон из AppBackground
         content.Padding = 20;
 
-        content.Children.Add(new Label
-        {
-            Text = "Внешний вид",
-            FontSize = 27,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
-
-        content.Children.Add(new Label
-        {
-            Text = "Настрой приложение под себя",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#B7B2C1")
-        });
-
-        AddSection("Тема приложения");
-        AddThemes();
-
-        AddSection("Акцентный цвет");
-        AddColors();
-
-        AddSection("Иконка приложения");
-        AddIcons();
-
-        AddPreview();
+        BuildContent();
 
         Content = new ScrollView { Content = content };
         ThemeManager.Apply();
     }
 
+    void BuildContent()
+    {
+        content.Children.Clear();
+
+        AddHeader();
+        AddSection("Тема приложения");
+        AddThemes();
+        AddSection("Акцентный цвет");
+        AddColors();
+        AddSection("Иконка приложения");
+        AddIcons();
+        AddPreview();
+    }
+
+    void AddHeader()
+    {
+        var heading = new Label
+        {
+            Text = "Внешний вид",
+            FontSize = 27,
+            FontAttributes = FontAttributes.Bold
+        };
+        ThemeManager.BindText(heading);
+        content.Children.Add(heading);
+
+        var subtitle = new Label
+        {
+            Text = "Настрой приложение под себя",
+            FontSize = 14
+        };
+        ThemeManager.BindText(subtitle, secondary: true);
+        content.Children.Add(subtitle);
+    }
+
     void AddSection(string title)
     {
-        content.Children.Add(new Label
+        var label = new Label
         {
             Text = title,
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Margin = new Thickness(0, 12, 0, 0)
-        });
+        };
+        ThemeManager.BindText(label);
+        content.Children.Add(label);
     }
 
     void AddThemes()
@@ -89,15 +98,15 @@ public class CustomizationPage : ContentPage
         };
 
         AddThemeButton(grid, 0, "black", "Чёрная", "#050507");
-        AddThemeButton(grid, 1, "dark", "Тёмная", "#111116");
+        AddThemeButton(grid, 1, "dark",  "Тёмная", "#111116");
         AddThemeButton(grid, 2, "light", "Светлая", "#F3F1F7");
 
         content.Children.Add(grid);
     }
 
-    void AddThemeButton(
-        Grid grid, int column, string id, string title, string color)
+    void AddThemeButton(Grid grid, int column, string id, string title, string color)
     {
+        // Превью темы остаётся с "родным" цветом, а рамка выбора — акцентная
         var selected = ThemeManager.CurrentTheme == id;
 
         var button = new Button
@@ -105,7 +114,7 @@ public class CustomizationPage : ContentPage
             Text = (selected ? "✓\n" : "") + title,
             BackgroundColor = Color.FromArgb(color),
             TextColor = id == "light" ? Colors.Black : Colors.White,
-            BorderColor = selected ? Color.FromArgb(ThemeManager.CurrentAccent) : Color.FromArgb("#48434F"),
+            BorderColor = selected ? ThemeManager.AccentColor : Color.FromArgb("#48434F"),
             BorderWidth = selected ? 2 : 1,
             CornerRadius = 14,
             HeightRequest = 76,
@@ -114,8 +123,8 @@ public class CustomizationPage : ContentPage
 
         button.Clicked += (_, _) =>
         {
-            ThemeManager.SetTheme(id);
-            RefreshPage();
+            ThemeManager.SetTheme(id);   // сохранит + Apply()
+            BuildContent();              // пересоберёт UI с новым выбором
         };
 
         grid.Add(button, column);
@@ -142,7 +151,9 @@ public class CustomizationPage : ContentPage
             int row = i / 4;
             int column = i % 4;
 
-            bool selected = ThemeManager.CurrentAccent == colors[i];
+            bool selected = string.Equals(
+                ThemeManager.CurrentAccent, colors[i],
+                StringComparison.OrdinalIgnoreCase);
 
             var button = new Button
             {
@@ -160,7 +171,7 @@ public class CustomizationPage : ContentPage
             button.Clicked += (_, _) =>
             {
                 ThemeManager.SetAccent(colors[index]);
-                RefreshPage();
+                BuildContent();
             };
 
             grid.Add(button, column, row);
@@ -192,21 +203,31 @@ public class CustomizationPage : ContentPage
 
             var button = new Button
             {
-                Text = $"{item.Symbol}   {item.Name}" +
-                       (selected ? "   ✓" : ""),
+                Text = $"{item.Symbol}   {item.Name}" + (selected ? "   ✓" : ""),
                 HeightRequest = 64,
                 CornerRadius = 14,
-                BackgroundColor = Color.FromArgb("#201D28"),
-                TextColor = Colors.White,
-                BorderColor = selected ? Color.FromArgb(ThemeManager.CurrentAccent) : Color.FromArgb("#383242"),
-                BorderWidth = selected ? 2 : 1,
                 FontSize = 14
             };
+
+            // фон/текст — из темы
+            button.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+            button.SetDynamicResource(Button.TextColorProperty,           ThemeManager.Text);
+
+            if (selected)
+            {
+                button.BorderColor = ThemeManager.AccentColor;
+                button.BorderWidth = 2;
+            }
+            else
+            {
+                button.SetDynamicResource(Button.BorderColorProperty, ThemeManager.Border);
+                button.BorderWidth = 1;
+            }
 
             button.Clicked += (_, _) =>
             {
                 ThemeManager.SetIcon(item.Id);
-                RefreshPage();
+                BuildContent();
             };
 
             grid.Add(button, column, row);
@@ -217,82 +238,53 @@ public class CustomizationPage : ContentPage
 
     void AddPreview()
     {
-        content.Children.Add(new Label
+        var header = new Label
         {
             Text = "Предпросмотр",
             FontSize = 18,
             FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
             Margin = new Thickness(0, 12, 0, 0)
-        });
+        };
+        ThemeManager.BindText(header);
+        content.Children.Add(header);
 
-        var preview = new Border
+        var card = new Border
         {
-            BackgroundColor = Color.FromArgb("#201D28"), 
-            Stroke = Color.FromArgb(ThemeManager.CurrentAccent),
+            Stroke = ThemeManager.AccentColor,
             StrokeThickness = 2,
-            StrokeShape = new RoundRectangle
-            {
-                CornerRadius = 18
-            },
-            Padding = 16,
-            Content = new VerticalStackLayout
-            {
-                Spacing = 8,
-                Children =
-                {
-                    new Label
-                    {
-                        Text = "Молоко",
-                        FontSize = 19,
-                        FontAttributes = FontAttributes.Bold,
-                        TextColor = Colors.White
-                    },
-                    new Label
-                    {
-                        Text = "2.5% • 0,930 л • 2 шт.",
-                        FontSize = 13,
-                        TextColor = Color.FromArgb("#B7B2C1")
-                    },
-                    new Label
-                    {
-                        Text = "6 дней   •   18 дней",
-                        FontSize = 14,
-                        TextColor = Colors.White
-                    }
-                }
-            }
+            StrokeShape = new RoundRectangle { CornerRadius = 18 },
+            Padding = 16
+        };
+        card.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+
+        var title = new Label
+        {
+            Text = "Молоко",
+            FontSize = 19,
+            FontAttributes = FontAttributes.Bold
+        };
+        ThemeManager.BindText(title);
+
+        var details = new Label
+        {
+            Text = "2.5% • 0,930 л • 2 шт.",
+            FontSize = 13
+        };
+        ThemeManager.BindText(details, secondary: true);
+
+        var days = new Label
+        {
+            Text = "6 дней   •   18 дней",
+            FontSize = 14
+        };
+        ThemeManager.BindText(days);
+
+        card.Content = new VerticalStackLayout
+        {
+            Spacing = 8,
+            Children = { title, details, days }
         };
 
-        content.Children.Add(preview);
-    }
-
-    void RefreshPage()
-    {
-        content.Children.Clear();
-
-        content.Children.Add(new Label
-        {
-            Text = "Внешний вид",
-            FontSize = 27,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        });
-
-        content.Children.Add(new Label
-        {
-            Text = "Настрой приложение под себя",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#B7B2C1")
-        });
-
-        AddSection("Тема приложения");
-        AddThemes();
-        AddSection("Акцентный цвет");
-        AddColors();
-        AddSection("Иконка приложения");
-        AddIcons();
-        AddPreview();
+        content.Children.Add(card);
     }
 }
-
