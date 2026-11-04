@@ -19,7 +19,7 @@
             11.0
         </SupportedOSPlatformVersion>
 
-
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
     <ApplicationTitle>FoodExpiryApp</ApplicationTitle>
     <ApplicationId>com.example.foodexpiryapp</ApplicationId>
     <ApplicationDisplayVersion>0.2.0</ApplicationDisplayVersion>
