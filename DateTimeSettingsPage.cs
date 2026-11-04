@@ -16,26 +16,15 @@ public class DateTimeSettingsPage : ContentPage
     public DateTimeSettingsPage()
     {
         Title = "Дата и время";
-        BackgroundColor = Color.FromArgb("#101014");
+        ThemeManager.BindPage(this);
 
-        _datePicker = new DatePicker
-        {
-            Date = AppClock.Now.Date,
-            TextColor = Colors.White
-        };
+        _datePicker = new DatePicker { Date = AppClock.Now.Date };
+        _datePicker.SetDynamicResource(DatePicker.TextColorProperty, ThemeManager.Text);
 
-        _timePicker = new TimePicker
-        {
-            Time = AppClock.Now.TimeOfDay,
-            TextColor = Colors.White
-        };
+        _timePicker = new TimePicker { Time = AppClock.Now.TimeOfDay };
+        _timePicker.SetDynamicResource(TimePicker.TextColorProperty, ThemeManager.Text);
 
-        _manualSwitch = new Switch
-        {
-            IsToggled = AppClock.IsManual,
-            OnColor = Color.FromArgb("#A978F5"),
-            ThumbColor = Colors.White
-        };
+        _manualSwitch = new Switch { IsToggled = AppClock.IsManual, OnColor = ThemeManager.AccentColor, ThumbColor = Colors.White };
 
         _warningLabel = new Label
         {
@@ -45,75 +34,28 @@ public class DateTimeSettingsPage : ContentPage
             IsVisible = AppClock.IsManual
         };
 
-        _regionPicker = new Picker
-        {
-            Title = "Выберите регион",
-            TextColor = Colors.White,
-            ItemsSource = new List<string>
-            {
-                "Москва",
-                "Калининград",
-                "Екатеринбург",
-                "Новосибирск",
-                "Владивосток",
-                "Чита",
-                "Лондон",
-                "Амстердам"
-            }
-        };
-
-        string savedRegion = Preferences.Get("AppRegion", "Чита");
-        _regionPicker.SelectedItem = savedRegion;
-
+        _regionPicker = new Picker { Title = "Выберите регион" };
+        _regionPicker.SetDynamicResource(Picker.TextColorProperty, ThemeManager.Text);
+        _regionPicker.ItemsSource = new List<string> { "Москва", "Калининград", "Екатеринбург", "Новосибирск", "Владивосток", "Чита", "Лондон", "Амстердам" };
+        _regionPicker.SelectedItem = Preferences.Get("AppRegion", "Чита");
         _manualSwitch.Toggled += OnManualSwitchChanged;
 
-        var title = new Label
-        {
-            Text = "Настройка времени",
-            FontSize = 22,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        };
+        var title = new Label { Text = "Настройка времени", FontSize = 22, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(title);
 
-        var description = new Label
-        {
-            Text = "Выберите автоматическое системное время или задайте дату и время вручную.",
-            FontSize = 14,
-            TextColor = Color.FromArgb("#AAAAAA")
-        };
+        var description = new Label { Text = "Выберите автоматическое системное время или задайте дату и время вручную.", FontSize = 14 };
+        ThemeManager.BindText(description, secondary: true);
 
-        var manualRow = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto)
-            }
-        };
-
-        var manualLabel = new Label
-        {
-            Text = "Ручная настройка",
-            TextColor = Colors.White,
-            VerticalOptions = LayoutOptions.Center
-        };
-
+        var manualRow = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
+        var manualLabel = new Label { Text = "Ручная настройка", VerticalOptions = LayoutOptions.Center };
+        ThemeManager.BindText(manualLabel);
+        
         manualRow.Add(manualLabel, 0, 0);
         manualRow.Add(_manualSwitch, 1, 0);
 
-        var dateLabel = CreateLabel("Дата");
-        var timeLabel = CreateLabel("Время");
-        var regionLabel = CreateLabel("Регион");
-
-        var saveButton = new Button
-        {
-            Text = "Сохранить",
-            BackgroundColor = Color.FromArgb("#A978F5"),
-            TextColor = Colors.White,
-            CornerRadius = 14,
-            HeightRequest = 50
-        };
-
+        var saveButton = new Button { Text = "Сохранить", CornerRadius = 14, HeightRequest = 50 };
+        saveButton.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
+        saveButton.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
         saveButton.Clicked += OnSaveClicked;
 
         var content = new VerticalStackLayout
@@ -122,42 +64,27 @@ public class DateTimeSettingsPage : ContentPage
             Spacing = 18,
             Children =
             {
-                title,
-                description,
-                manualRow,
-                _warningLabel,
-                dateLabel,
-                _datePicker,
-                timeLabel,
-                _timePicker,
-                regionLabel,
-                _regionPicker,
+                title, description, manualRow, _warningLabel,
+                CreateLabel("Дата"), _datePicker,
+                CreateLabel("Время"), _timePicker,
+                CreateLabel("Регион"), _regionPicker,
                 saveButton
             }
         };
 
-        Content = new ScrollView
-        {
-            Content = content
-        };
-
+        Content = new ScrollView { Content = content };
         UpdateControls();
+        ThemeManager.Apply();
     }
 
-    private static Label CreateLabel(string text)
+    private Label CreateLabel(string text)
     {
-        return new Label
-        {
-            Text = text,
-            TextColor = Colors.White,
-            FontAttributes = FontAttributes.Bold,
-            FontSize = 15
-        };
+        var l = new Label { Text = text, FontAttributes = FontAttributes.Bold, FontSize = 15 };
+        ThemeManager.BindText(l);
+        return l;
     }
 
-    private void OnManualSwitchChanged(
-        object? sender,
-        ToggledEventArgs e)
+    private void OnManualSwitchChanged(object? sender, ToggledEventArgs e)
     {
         _warningLabel.IsVisible = e.Value;
         UpdateControls();
@@ -166,39 +93,21 @@ public class DateTimeSettingsPage : ContentPage
     private void UpdateControls()
     {
         bool manual = _manualSwitch.IsToggled;
-
         _datePicker.IsEnabled = manual;
         _timePicker.IsEnabled = manual;
     }
 
-    private async void OnSaveClicked(
-        object? sender,
-        EventArgs e)
+    private async void OnSaveClicked(object? sender, EventArgs e)
     {
         if (_manualSwitch.IsToggled)
-        {
-            DateTime selectedDateTime = _datePicker.Date
-                .Date
-                .Add(_timePicker.Time);
-
-            AppClock.SetManualDateTime(selectedDateTime);
-        }
+            AppClock.SetManualDateTime(_datePicker.Date.Date.Add(_timePicker.Time));
         else
-        {
             AppClock.UseSystemTime();
-        }
 
         if (_regionPicker.SelectedItem is string region)
-        {
             Preferences.Set("AppRegion", region);
-        }
 
-        await DisplayAlert(
-            "Сохранено",
-            "Настройки даты и времени сохранены.",
-            "ОК"
-        );
-
+        await DisplayAlert("Сохранено", "Настройки даты и времени сохранены.", "ОК");
         await Navigation.PopAsync();
     }
 }
