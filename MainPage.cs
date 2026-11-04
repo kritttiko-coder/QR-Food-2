@@ -305,7 +305,7 @@ public class MainPage : ContentPage
         {
             Text = imageSymbol,
             FontSize = iconOnly ? 30 : compact ? 40 : 54,
-            TextColor = Color.FromArgb("#514B5C"),
+            ThemeManager.BindText(imageLabel, secondary: true);
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalOptions = LayoutOptions.Fill,
