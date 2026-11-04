@@ -7,9 +7,7 @@
         android:label="FoodExpiryApp"
         android:supportsRtl="true">
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="true" />
+        
 
         <activity-alias
             android:name=".LauncherClassic"
