@@ -1,109 +1,65 @@
-
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Graphics;
+using Microsoft.Maui.Storage;
 
 namespace FoodExpiryApp;
 
 public class SettingsPage : ContentPage
 {
-    readonly Color panel = Color.FromArgb("#201D28");
-    readonly Color purple = Color.FromArgb("#A978F5");
-    readonly Color muted = Color.FromArgb("#B7B2C1");
-
     public SettingsPage()
     {
         Title = "Настройки";
-        BackgroundColor = Color.FromArgb("#111116");
+        ThemeManager.BindPage(this); // Привязка фона страницы
 
         var heading = new Label
         {
             Text = "Настройки",
             FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
+            FontAttributes = FontAttributes.Bold
         };
-        
+        ThemeManager.BindText(heading);
+
         var subtitle = new Label
         {
             Text = "Персонализируйте и изменяйте приложение под себя",
-            FontSize = 13,
-            TextColor = muted
-        }; 
-        
-        var lang = new Picker
+            FontSize = 13
+        };
+        ThemeManager.BindText(subtitle, secondary: true);
+
+        // Кнопка выбора языка (вместо Picker)
+        var langButton = CreateMenuButton("🌐", "Язык", "Выберите язык интерфейса");
+        langButton.Clicked += async (_, _) =>
         {
-            Title = "Язык приложения",
-            ItemsSource = new[] { "Русский", "English" },
-            SelectedIndex = Preferences.Default.Get("app_language", 0),
-            TextColor = Colors.White,
-            TitleColor = muted
+            var current = Preferences.Default.Get("app_language", 0) == 0 ? "Русский" : "English";
+            var action = await DisplayActionSheet("Выберите язык", "Отмена", null, "Русский", "English");
+            
+            if (action == "Русский") Preferences.Default.Set("app_language", 0);
+            else if (action == "English") Preferences.Default.Set("app_language", 1);
         };
 
-        lang.SelectedIndexChanged += (_, _) =>
-        {
-            if (lang.SelectedIndex >= 0)
-                Preferences.Default.Set("app_language", lang.SelectedIndex);
-        };
+        var appearance = CreateMenuButton("🎨", "Внешний вид", "Тема, акцентный цвет и иконка");
+        appearance.Clicked += async (_, _) => await Navigation.PushAsync(new CustomizationPage());
 
-        var languagePanel = new VerticalStackLayout
-        {
-            Spacing = 6,
-            Children =
-            {
-                new Label
-                {
-                    Text = "Язык",
-                    TextColor = Colors.White,
-                    FontAttributes = FontAttributes.Bold,
-                    FontSize = 15
-                },
-                lang
-            }
-        };
+        var dateTime = CreateMenuButton("◷", "Дата и время", "Дата, часы и настройки региона");
+        dateTime.Clicked += async (_, _) => await Navigation.PushAsync(new DateTimeSettingsPage());
 
-        var appearance = CreateMenuButton(
-            "картинка ", "Внешний вид",
-            "Тема, акцентный цвет и иконка");
+        var info = CreateMenuButton("ⓘ", "Информация", "Цвета сроков годности и категорий");
+        info.Clicked += async (_, _) => await Navigation.PushAsync(new InfoPage());
 
-        appearance.Clicked += async (_, _) =>
-            await Navigation.PushAsync(new CustomizationPage());
+        var donation = CreateMenuButton("☕", "Поддержать автора", "Помочь развитию FoodExpiryApp");
+        donation.Clicked += async (_, _) => await Navigation.PushAsync(new SupportPage());
 
-        var dateTime = CreateMenuButton(
-            "◷", "Дата и время",
-            "Дата, часы и настройки региона");
-
-        dateTime.Clicked += async (_, _) =>
-            await Navigation.PushAsync(new DateTimeSettingsPage());
-
-        var info = CreateMenuButton(
-            "ⓘ", "Информация",
-            "Цвета сроков годности и категорий");
-
-        info.Clicked += async (_, _) =>
-            await Navigation.PushAsync(new InfoPage());
-
-        var donation = CreateMenuButton(
-            "☕", "Поддержать автора",
-            "Помочь развитию FoodExpiryApp");
-
-        donation.Clicked += async (_, _) =>
-            await Navigation.PushAsync(new SupportPage());
-
-        var help = CreateMenuButton(
-            "?", "Помощь и поддержка",
-            "Сообщить о проблеме или ошибке");
-
-        help.Clicked += async (_, _) =>
-            await Navigation.PushAsync(new HelpPage());
+        var help = CreateMenuButton("?", "Помощь и поддержка", "Сообщить о проблеме или ошибке");
+        help.Clicked += async (_, _) => await Navigation.PushAsync(new HelpPage());
 
         var version = new Label
         {
             Text = "FoodExpiryApp · версия 0.2.0",
-            TextColor = muted,
             FontSize = 12,
             HorizontalOptions = LayoutOptions.Center,
             Margin = new Thickness(0, 8, 0, 0)
         };
+        ThemeManager.BindText(version, secondary: true);
 
         Content = new ScrollView
         {
@@ -111,23 +67,14 @@ public class SettingsPage : ContentPage
             {
                 Padding = 22,
                 Spacing = 14,
-                Children =
-                {
-                    heading,
-                    subtitle,
-                    languagePanel,
-                    appearance,
-                    dateTime,
-                    info,
-                    donation,
-                    help,
-                    version
-                }
+                Children = { heading, subtitle, langButton, appearance, dateTime, info, donation, help, version }
             }
         };
+        
+        ThemeManager.Apply();
     }
 
-    Button CreateMenuButton(string icon, string title, string description)
+    private Button CreateMenuButton(string icon, string title, string description)
     {
         var button = new Button
         {
@@ -135,13 +82,15 @@ public class SettingsPage : ContentPage
             FontSize = 15,
             HeightRequest = 76,
             CornerRadius = 16,
-            BackgroundColor = panel,
-            TextColor = Colors.White,
-            BorderColor = Color.FromArgb("#383242"),
             BorderWidth = 1,
-            HorizontalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Fill,
             Padding = new Thickness(16, 8)
         };
+
+        // Динамические цвета
+        button.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+        button.SetDynamicResource(Button.TextColorProperty, ThemeManager.Text);
+        button.SetDynamicResource(Button.BorderColorProperty, ThemeManager.Border);
 
         return button;
     }
