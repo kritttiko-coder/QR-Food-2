@@ -1,10 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-  <SupportedOSPlatformVersion
-    ondition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
-    26.0
-    </SupportedOSPlatformVersion>
-
+  
   <PropertyGroup>
     <TargetFramework>net8.0-android</TargetFramework>
     <OutputType>Exe</OutputType>
@@ -13,6 +8,13 @@
     <SingleProject>true</SingleProject>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <SupportedOSPlatformVersion
+    ondition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+    26.0
+    </SupportedOSPlatformVersion>
+
+
 
     <ApplicationTitle>FoodExpiryApp</ApplicationTitle>
     <ApplicationId>com.example.foodexpiryapp</ApplicationId>
