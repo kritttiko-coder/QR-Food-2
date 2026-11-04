@@ -1,5 +1,5 @@
-
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 
 namespace FoodExpiryApp;
@@ -9,40 +9,26 @@ public class HelpPage : ContentPage
     public HelpPage()
     {
         Title = "Помощь";
-        BackgroundColor = Color.FromArgb("#111116");
+        ThemeManager.BindPage(this);
 
-        var title = new Label
-        {
-            Text = "Помощь и поддержка",
-            FontSize = 25,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        };
+        var title = new Label { Text = "Помощь и поддержка", FontSize = 25, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(title);
 
-        var description = new Label
-        {
-            Text = "Возникла проблема с приложением? Здесь будет доступна информация, которая поможет её решить, и способ связаться с разработчиком.",
-            FontSize = 15,
-            TextColor = Color.FromArgb("#B7B2C1")
-        };
+        var description = new Label { Text = "Возникла проблема с приложением? Здесь будет доступна информация, которая поможет её решить, и способ связаться с разработчиком.", FontSize = 15 };
+        ThemeManager.BindText(description, secondary: true);
+
+        var noteLabel = new Label { Text = "Раздел связи с разработчиком пока не подключён.", FontSize = 14 };
+        ThemeManager.BindText(noteLabel);
 
         var note = new Border
         {
-            BackgroundColor = Color.FromArgb("#201D28"),
-            Stroke = Color.FromArgb("#383242"),
             StrokeThickness = 1,
-            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle
-            {
-                CornerRadius = 16
-            },
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
             Padding = 16,
-            Content = new Label
-            {
-                Text = "Раздел связи с разработчиком пока не подключён.",
-                TextColor = Colors.White,
-                FontSize = 14
-            }
+            Content = noteLabel
         };
+        note.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+        note.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
         Content = new ScrollView
         {
@@ -53,5 +39,6 @@ public class HelpPage : ContentPage
                 Children = { title, description, note }
             }
         };
+        ThemeManager.Apply();
     }
 }
