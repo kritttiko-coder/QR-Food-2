@@ -1,2 +1,57 @@
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
-namespace FoodExpiryApp; public class InfoPage:ContentPage { public InfoPage(){Title="Инфо";BackgroundColor=Color.FromArgb("#111116");var s=new VerticalStackLayout{Padding=22,Spacing=10};s.Children.Add(new Label{Text="Цвета сроков годности",FontSize=26,TextColor=Colors.White,FontAttributes=FontAttributes.Bold});Add(s,"Просрочен","#B00035");Add(s,"0–3 дня","#FF414D");Add(s,"4–7 дней","#FF962E");Add(s,"8–14 дней","#FF962E");Add(s,"15–21 день","#E8C928");Add(s,"22+ дня","#39C879");s.Children.Add(new Label{Text="Фоны категорий: молочные — белый; напитки — голубой; мясо/рыба — розово-красный; овощи/фрукты — зелёный; заморозка — синий; прочее — фиолетовый.",TextColor=Color.FromArgb("#B7B2C1")});s.Children.Add(new Label{Text="Цвет — визуальная подсказка, а не оценка безопасности пищи.",TextColor=Color.FromArgb("#FFB65C")});var support=new Button{Text="Поддержать разработчика",BackgroundColor=Color.FromArgb("#282431"),TextColor=Colors.White};support.Clicked+=async(_,_)=>await Navigation.PushAsync(new SupportPage());s.Children.Add(support);Content=new ScrollView{Content=s};}static void Add(VerticalStackLayout s,string t,string c)=>s.Children.Add(new Border{BackgroundColor=Color.FromArgb(c),StrokeThickness=0,StrokeShape=new RoundRectangle{CornerRadius=20},Padding=10,Content=new Label{Text=t,TextColor=Colors.Black,FontAttributes=FontAttributes.Bold}}); }
+using Microsoft.Maui.Graphics;
+
+namespace FoodExpiryApp;
+
+public class InfoPage : ContentPage
+{
+    public InfoPage()
+    {
+        Title = "Инфо";
+        ThemeManager.BindPage(this);
+
+        var title = new Label { Text = "Цвета сроков годности", FontSize = 26, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(title);
+
+        var content = new VerticalStackLayout { Padding = 22, Spacing = 10, Children = { title } };
+
+        AddColorBlock(content, "Просрочен", "#B00035");
+        AddColorBlock(content, "0–3 дня", "#FF414D");
+        AddColorBlock(content, "4–7 дней", "#FF962E");
+        AddColorBlock(content, "8–14 дней", "#FF962E");
+        AddColorBlock(content, "15–21 день", "#E8C928");
+        AddColorBlock(content, "22+ дня", "#39C879");
+       
+
+        var desc = new Label { Text = "Фоны категорий: ", Margin = new Thickness(0, 10, 0, 0) };
+        ThemeManager.BindText(desc, secondary: true);
+        content.Children.Add(desc);
+        var content = new VerticalStackLayout { Padding = 22, Spacing = 10, Children = { title } };
+
+        AddColorBlock(content, "Молочные", "#FFFFFF4D");      // Полупрозрачный белый
+        AddColorBlock(content, "Напитки", "#E0F7FA4D");       // Полупрозрачный нежно-голубой
+        AddColorBlock(content, "Мясо/рыба", "#FFEBEE4D");     // Полупрозрачный нежно-красный
+        AddColorBlock(content, "Овощи/фрукты", "#E8F5E94D");   // Полупрозрачный светло-зеленый
+        AddColorBlock(content, "Заморозка", "#E3F2FD4D");     // Полупрозрачный льдисто-синий
+        AddColorBlock(content, "Прочие", "#F3E5F54D");        // Полупрозрачный светло-фиолетовый
+
+        var warning = new Label { Text = "Цвет — визуальная подсказка, а не оценка безопасности пищи.", TextColor = Color.FromArgb("#FFB65C") };
+        content.Children.Add(warning);
+
+        Content = new ScrollView { Content = content };
+        ThemeManager.Apply();
+    }
+
+    private void AddColorBlock(VerticalStackLayout s, string text, string colorHex)
+    {
+        s.Children.Add(new Border
+        {
+            BackgroundColor = Color.FromArgb(colorHex),
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 20 },
+            Padding = 10,
+            Content = new Label { Text = text, TextColor = Colors.Black, FontAttributes = FontAttributes.Bold }
+        });
+    }
+}
