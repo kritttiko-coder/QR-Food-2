@@ -304,14 +304,15 @@ public class MainPage : ContentPage
         var imageLabel = new Label
         {
             Text = imageSymbol,
-            FontSize = iconOnly ? 30 : compact ? 40 : 54,
-            ThemeManager.BindText(imageLabel, secondary: true),
+            FontSize = iconOnly ? 30 : compact ? 40 : 54,           
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
-
+        
+        ThemeManager.BindText(imageLabel, secondary: true);
+        
         var imagePlaceholder = new Border
         {
             WidthRequest = imageSize,
