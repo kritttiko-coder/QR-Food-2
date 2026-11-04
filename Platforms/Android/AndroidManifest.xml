@@ -7,10 +7,14 @@
         android:label="FoodExpiryApp"
         android:supportsRtl="true">
 
+        <activity
+            android:name=".MainActivity"
+            android:exported="true" />
+
         <activity-alias
             android:name=".LauncherClassic"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_classic_food_qr"
+            android:icon="@mipmap/ic_launcher_classic"
             android:label="FoodExpiryApp"
             android:enabled="true"
             android:exported="true">
@@ -23,7 +27,7 @@
         <activity-alias
             android:name=".LauncherWinter"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_winter_food_qr"
+            android:icon="@mipmap/ic_launcher_winter"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
@@ -36,7 +40,7 @@
         <activity-alias
             android:name=".LauncherHalloween"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_halloween_food_qr"
+            android:icon="@mipmap/ic_launcher_halloween"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
@@ -49,7 +53,7 @@
         <activity-alias
             android:name=".LauncherMonochrome"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_monochrome_food_qr"
+            android:icon="@mipmap/ic_launcher_mono"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
@@ -62,7 +66,7 @@
         <activity-alias
             android:name=".LauncherNeon"
             android:targetActivity=".MainActivity"
-            android:icon="@drawable/appicon_neon_food_qr"
+            android:icon="@mipmap/ic_launcher_neon"
             android:label="FoodExpiryApp"
             android:enabled="false"
             android:exported="true">
