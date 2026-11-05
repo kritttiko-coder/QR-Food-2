@@ -32,7 +32,7 @@ public class MainPage : ContentPage
     private List<Product> all = new();
     
     // Ссылка на картинку плотности, чтобы менять её Source
-    private Image densityImage; 
+    private Image? densityImage; 
 
     public MainPage(ProductRepository repository)
     {
