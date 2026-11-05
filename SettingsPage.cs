@@ -1,6 +1,8 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Storage;
+using CommunityToolkit.Maui.Behaviors;
 
 namespace FoodExpiryApp;
 
@@ -9,48 +11,49 @@ public class SettingsPage : ContentPage
     public SettingsPage()
     {
         Title = "Настройки";
-        ThemeManager.BindPage(this); // Привязка фона страницы
+        ThemeManager.BindPage(this);
 
-        var heading = new Label
-        {
-            Text = "Настройки",
-            FontSize = 28,
-            FontAttributes = FontAttributes.Bold
-        };
+        var heading = new Label { Text = "Настройки", FontSize = 28, FontAttributes = FontAttributes.Bold };
         ThemeManager.BindText(heading);
 
-        var subtitle = new Label
-        {
-            Text = "Персонализируйте и изменяйте приложение под себя",
-            FontSize = 13
-        };
+        var subtitle = new Label { Text = "Персонализируйте и изменяйте приложение под себя", FontSize = 13 };
         ThemeManager.BindText(subtitle, secondary: true);
 
-        // Кнопка выбора языка (вместо Picker)
-        var langButton = CreateMenuButton("🌐", "Язык", "Выберите язык интерфейса");
-        langButton.Clicked += async (_, _) =>
+        var langButton = CreateMenuButton("icon_lang.png", "Язык", "Выберите язык интерфейса");
+        langButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            var current = Preferences.Default.Get("app_language", 0) == 0 ? "Русский" : "English";
-            var action = await DisplayActionSheet("Выберите язык", "Отмена", null, "Русский", "English");
-            
-            if (action == "Русский") Preferences.Default.Set("app_language", 0);
-            else if (action == "English") Preferences.Default.Set("app_language", 1);
-        };
+            Command = new Command(async () => await Navigation.PushAsync(new languagesPage()))
+        });           
 
-        var appearance = CreateMenuButton("🎨", "Внешний вид", "Тема, акцентный цвет и иконка");
-        appearance.Clicked += async (_, _) => await Navigation.PushAsync(new CustomizationPage());
+        var appearance = CreateMenuButton("icon_brush.png", "Внешний вид", "Тема, акцентный цвет и иконка");
+        appearance.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Navigation.PushAsync(new CustomizationPage()))
+        });
 
-        var dateTime = CreateMenuButton("◷", "Дата и время", "Дата, часы и настройки региона");
-        dateTime.Clicked += async (_, _) => await Navigation.PushAsync(new DateTimeSettingsPage());
+        var dateTime = CreateMenuButton("icon_clock.png", "Дата и время", "Дата, часы и настройки региона");
+        dateTime.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Navigation.PushAsync(new DateTimeSettingsPage()))
+        });
 
-        var info = CreateMenuButton("ⓘ", "Информация", "Цвета сроков годности и категорий");
-        info.Clicked += async (_, _) => await Navigation.PushAsync(new InfoPage());
+        var info = CreateMenuButton("icon_info.png", "Информация", "Цвета сроков годности и категорий");
+        info.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Navigation.PushAsync(new InfoPage()))
+        });
 
-        var donation = CreateMenuButton("☕", "Поддержать автора", "Помочь развитию FoodExpiryApp");
-        donation.Clicked += async (_, _) => await Navigation.PushAsync(new SupportPage());
+        var donation = CreateMenuButton("icon_coffee.png", "Поддержать автора", "Помочь развитию FoodExpiryApp");
+        donation.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Navigation.PushAsync(new SupportPage()))
+        });
 
-        var help = CreateMenuButton("?", "Помощь и поддержка", "Сообщить о проблеме или ошибке");
-        help.Clicked += async (_, _) => await Navigation.PushAsync(new HelpPage());
+        var help = CreateMenuButton("icon_help.png", "Помощь и поддержка", "Сообщить о проблеме или ошибке");
+        help.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Navigation.PushAsync(new HelpPage()))
+        });
 
         var version = new Label
         {
@@ -74,24 +77,59 @@ public class SettingsPage : ContentPage
         ThemeManager.Apply();
     }
 
-    private Button CreateMenuButton(string icon, string title, string description)
+    private Border CreateMenuButton(string iconSource, string title, string description)
     {
-        var button = new Button
+        // Сама иконка с тонированием
+        var icon = new Image
         {
-            Text = $"{icon}   {title}\n       {description}",
-            FontSize = 15,
-            HeightRequest = 76,
-            CornerRadius = 16,
-            BorderWidth = 1,
-            HorizontalOptions = LayoutOptions.Fill,
-            Padding = new Thickness(16, 8)
+            Source = iconSource,
+            WidthRequest = 24,
+            HeightRequest = 24,
+            VerticalOptions = LayoutOptions.Center
+        };
+        
+        // Тонируем в акцентный цвет
+        icon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+
+        // Тексты
+        var titleLabel = new Label { Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(titleLabel);
+
+        var descLabel = new Label { Text = description, FontSize = 12 };
+        ThemeManager.BindText(descLabel, secondary: true);
+
+        var textStack = new VerticalStackLayout
+        {
+            Spacing = 2,
+            VerticalOptions = LayoutOptions.Center,
+            Children = { titleLabel, descLabel }
         };
 
-        // Динамические цвета
-        button.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
-        button.SetDynamicResource(Button.TextColorProperty, ThemeManager.Text);
-        button.SetDynamicResource(Button.BorderColorProperty, ThemeManager.Border);
+        // Компоновка: Иконка слева, текст справа
+        var grid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 16,
+            Padding = new Thickness(16, 12)
+        };
+        grid.Add(icon, 0, 0);
+        grid.Add(textStack, 1, 0);
 
-        return button;
+        
+        var border = new Border
+        {
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
+            Content = grid
+        };
+        
+        border.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+        border.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+
+        return border;
     }
 }
