@@ -36,6 +36,10 @@ public static class IconSwitcher
             if (name == target) continue;
             SetState(pm, pkg!, name, ComponentEnabledState.Disabled);
         }
+        // Отправляем широковещательный интент, чтобы лаунчер обновил иконки
+var intent = new global::Android.Content.Intent(global::Android.Content.Intent.ActionMain);
+intent.AddCategory(global::Android.Content.Intent.CategoryLauncher);
+// Это не запустит приложение, просто обновит меню
     }
 
     static void SetState(
