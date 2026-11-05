@@ -10,6 +10,7 @@ public static class MauiProgram
 
         builder
             .UseMauiApp<App>();
+            .UseMauiCommunityToolkit();
 
 #if DEBUG
         builder.Logging.AddDebug();
