@@ -5,7 +5,8 @@
     <application
         android:allowBackup="true"
         android:label="FoodExpiryApp"
-        android:supportsRtl="true">
+        android:supportsRtl="true"
+        android:icon="@mipmap/ic_launcher_classic">
 
         
 
