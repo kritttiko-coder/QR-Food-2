@@ -18,13 +18,13 @@ public class SettingsPage : ContentPage
 
         var subtitle = new Label { Text = "Персонализируйте и изменяйте приложение под себя", FontSize = 13 };
         ThemeManager.BindText(subtitle, secondary: true);
-
-        var langButton = CreateMenuButton("icon_lang.png", "Язык", "Выберите язык интерфейса");
+       
+        var langButton = CreateMenuButton("icon_lang.png", Loc.T("Language"), Loc.T("ChooseLanguage"));
         langButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await Navigation.PushAsync(new LanguagesPage()))
-        });           
-
+        });
+                        
         var appearance = CreateMenuButton("icon_brush.png", "Внешний вид", "Тема, акцентный цвет и иконка");
         appearance.GestureRecognizers.Add(new TapGestureRecognizer
         {
