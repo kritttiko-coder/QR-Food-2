@@ -137,7 +137,7 @@ public class MainPage : ContentPage
 
         // --- Кнопка Добавить (Плюс оставили) ---
         var addImg = new Image { Source = "icon_plus.png", WidthRequest = 40, HeightRequest = 40, HorizontalOptions = LayoutOptions.Center };
-        addImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.TextColor }); // Плюс меняет цвет под тему
+        addImg.Behaviors.Add(new IconTintColorBehavior { TintColor = (Color)Application.Current.Resources[ThemeManager.Text] });
         var addLabel = new Label { Text = "Добавить", FontSize = 16, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center };
         ThemeManager.BindText(addLabel);
 
