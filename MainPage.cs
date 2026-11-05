@@ -382,17 +382,20 @@ public class MainPage : ContentPage
         row.Add(controls, 2, 0);
 
         var originalTint = CategoryStyle.Tint(product.Category);
-        var translucentTint = Color.FromRgba(originalTint.Red, originalTint.Green, originalTint.Blue, 0.22f);
+
+        // Было: 0.22f
+        var translucentTint = Color.FromRgba(originalTint.Red, originalTint.Green, originalTint.Blue, 0.45f);
 
         var border = new Border
         {
-            BackgroundColor = translucentTint,
-            StrokeThickness = 1,
-            StrokeShape = new RoundRectangle { CornerRadius = 22 },
-            Padding = new Thickness(iconOnly ? 10 : 16),
-            Content = row
+        BackgroundColor = translucentTint,
+        StrokeThickness = 2, // Сделаем обводку чуть толще
+        StrokeShape = new RoundRectangle { CornerRadius = 22 },
+        Padding = new Thickness(iconOnly ? 10 : 16),
+        Content = row
         };
-        border.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+
+        border.SetDynamicResource(Border.StrokeProperty, ThemeManager.Accent);
 
         return border;
     }
