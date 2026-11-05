@@ -1,3 +1,4 @@
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 
 namespace FoodExpiryApp;
@@ -9,8 +10,8 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
 
         builder
-            .UseMauiApp<App>();
-            .UseMauiCommunityToolkit();
+            .UseMauiApp<App>()
+            .UseMauiCommunityToolkit();   
 
 #if DEBUG
         builder.Logging.AddDebug();
