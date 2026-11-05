@@ -1,4 +1,0 @@
-    var var action = await DisplayActionSheet("Выберите язык", "Отмена", null, "Русский", "English");
-               if (action == "Русский") Preferences.DefaSet.Set("app_language", 0);               
-else if (action == "English") Preferences.Default.Set("app_language", 1);
-            
