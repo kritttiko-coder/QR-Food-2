@@ -46,14 +46,14 @@ public class InfoPage : ContentPage
         content.Children.Add(desc);
 
         
-        AddColorBlock(content, "Молочные", "#FFFFFF4D");
-        AddColorBlock(content, "Напитки", "#E0F7FA4D");
-        AddColorBlock(content, "Мясо/рыба", "#FFEBEE4D");
-        AddColorBlock(content, "Овощи/фрукты", "#E8F5E94D");
-        AddColorBlock(content, "Заморозка", "#E3F2FD4D");
-        AddColorBlock(content, "Прочие", "#F3E5F54D");
-
-        // Предупреждение
+        // 70%
+AddColorBlock(content, "Молочные",     "#B3FFFFFF");
+AddColorBlock(content, "Напитки",      "#B3E0F7FA");
+AddColorBlock(content, "Мясо/рыба",    "#B3FFEBEE");
+AddColorBlock(content, "Овощи/фрукты", "#B3E8F5E9");
+AddColorBlock(content, "Заморозка",    "#B3E3F2FD");
+AddColorBlock(content, "Прочие",       "#B3F3E5F5");
+        
         var warning = new Label
         {
             Text = "Цвет — визуальная подсказка, а не оценка безопасности пищи.",
