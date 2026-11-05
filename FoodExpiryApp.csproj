@@ -31,6 +31,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.3" />
     <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+
+    <PackageReference Include="CommunityToolkit.Maui" Version="9.0.0" />
+
   </ItemGroup>
 
 </Project>
