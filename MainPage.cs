@@ -2,6 +2,7 @@ using FoodExpiryApp.Models;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
+using CommunityToolkit.Maui.Behaviors;
 
 namespace FoodExpiryApp;
 
@@ -29,6 +30,9 @@ public class MainPage : ContentPage
 
     private int density;
     private List<Product> all = new();
+    
+    // Ссылка на картинку плотности, чтобы менять её Source
+    private Image densityImage; 
 
     public MainPage(ProductRepository repository)
     {
@@ -62,18 +66,30 @@ public class MainPage : ContentPage
             Children = { title, countLabel }
         };
 
-        var densityButton = CreateIconButton("▤");
-        densityButton.Clicked += (_, _) =>
-        {
-            density = (density + 1) % 3;
-            Render();
-        };
+        // --- Кнопка плотности (Смена иконок) ---
+        densityImage = new Image { WidthRequest = 28, HeightRequest = 28 };
+        UpdateDensityIcon(); // Ставим начальную иконку
+        densityImage.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
 
-        var settingsButton = CreateIconButton("⚙");
-        settingsButton.Clicked += async (_, _) =>
+        var densityButton = CreateIconButtonWithImage(densityImage);
+        densityButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            await Navigation.PushAsync(new SettingsPage());
-        };
+            Command = new Command(() =>
+            {
+                density = (density + 1) % 3; // 0 -> 1 -> 2 -> 0
+                UpdateDensityIcon();
+                Render();
+            })
+        });
+
+        // --- Кнопка настроек ---
+        var settingsImg = new Image { Source = "icon_gear.png", WidthRequest = 28, HeightRequest = 28 };
+        settingsImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var settingsButton = CreateIconButtonWithImage(settingsImg);
+        settingsButton.GestureRecognizers.Add(new TapGestureRecognizer
+        {
+            Command = new Command(async () => await Navigation.PushAsync(new SettingsPage()))
+        });
 
         var top = new Grid
         {
@@ -95,78 +111,52 @@ public class MainPage : ContentPage
         var searchFrame = new Border
         {
             StrokeThickness = 0,
-            StrokeShape = new RoundRectangle
-            {
-                CornerRadius = 18
-            },
+            StrokeShape = new RoundRectangle { CornerRadius = 18 },
             Padding = new Thickness(8, 0),
             Content = search
         };
-
-        searchFrame.SetDynamicResource(
-            VisualElement.BackgroundColorProperty,
-            ThemeManager.Surface);
-
+        searchFrame.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
         search.TextChanged += (_, _) => Render();
 
-        var scanButton = new Button
+        // --- Кнопка QR (Оставили без тонирования, как просил) ---
+        var scanImg = new Image { Source = "icon_qr.png", WidthRequest = 40, HeightRequest = 40, HorizontalOptions = LayoutOptions.Center };
+        var scanLabel = new Label { Text = "Сканировать", FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center };
+        
+        var scanButton = new Border
         {
-            Text = "▦\nСканировать",
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            CornerRadius = 19,
-            HeightRequest = 120,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 19 },
+            BackgroundColor = ThemeManager.AccentColor,
+            Padding = 10,
+            Content = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center, Children = { scanImg, scanLabel } }
         };
-
-        scanButton.SetDynamicResource(
-            VisualElement.BackgroundColorProperty,
-            ThemeManager.Accent);
-
-        scanButton.SetDynamicResource(
-            Button.TextColorProperty,
-            ThemeManager.AccentText);
-
-        scanButton.Clicked += async (_, _) =>
+        scanButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            await DisplayAlert(
-                "Сканирование QR",
-                "Сканер ещё не подключён. Его реализацию нужно добавить отдельно.",
-                "Понятно");
-        };
+            Command = new Command(async () => await DisplayAlert("Сканирование QR", "Сканер ещё не подключён.", "Понятно"))
+        });
 
-        var addButton = new Button
+        // --- Кнопка Добавить (Плюс оставили) ---
+        var addImg = new Image { Source = "icon_plus.png", WidthRequest = 40, HeightRequest = 40, HorizontalOptions = LayoutOptions.Center };
+        addImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.TextColor }); // Плюс меняет цвет под тему
+        var addLabel = new Label { Text = "Добавить", FontSize = 16, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center };
+        ThemeManager.BindText(addLabel);
+
+        var addButton = new Border
         {
-            Text = "+\nДобавить",
-            FontSize = 18,
-            FontAttributes = FontAttributes.Bold,
-            CornerRadius = 19,
-            HeightRequest = 120,
-            HorizontalOptions = LayoutOptions.Fill,
-            VerticalOptions = LayoutOptions.Fill
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 19 },
+            Padding = 10,
+            Content = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center, Children = { addImg, addLabel } }
         };
-
-        addButton.SetDynamicResource(
-            VisualElement.BackgroundColorProperty,
-            ThemeManager.SurfaceAlt);
-
-        addButton.SetDynamicResource(
-            Button.TextColorProperty,
-            ThemeManager.Text);
-
-        addButton.Clicked += async (_, _) =>
+        addButton.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.SurfaceAlt);
+        addButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            await Navigation.PushAsync(new ProductEditPage(repo));
-        };
+            Command = new Command(async () => await Navigation.PushAsync(new ProductEditPage(repo)))
+        });
 
         var actions = new Grid
         {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) },
             ColumnSpacing = 12
         };
 
@@ -177,49 +167,47 @@ public class MainPage : ContentPage
         {
             Padding = new Thickness(18, 22, 18, 24),
             Spacing = 18,
-            Children =
-            {
-                top,
-                searchFrame,
-                actions,
-                cards
-            }
+            Children = { top, searchFrame, actions, cards }
         };
 
-        Content = new ScrollView
+        Content = new ScrollView { Content = content };
+    }
+
+    private void UpdateDensityIcon()
+    {
+        densityImage.Source = density switch
         {
-            Content = content
+            0 => "icon_layout_2.png", // 2 строки
+            1 => "icon_layout_3.png", // 3 строки
+            2 => "icon_layout_4.png", // 4 квадрата
+            _ => "icon_layout_2.png"
         };
     }
 
-    private Button CreateIconButton(string symbol)
+    private Border CreateIconButtonWithImage(Image img)
     {
-        var button = new Button
+        var border = new Border
         {
-            Text = symbol,
-            FontSize = 25,
-            CornerRadius = 19,
             WidthRequest = 58,
             HeightRequest = 58,
-            Padding = 0
+            StrokeThickness = 0,
+            StrokeShape = new RoundRectangle { CornerRadius = 19 },
+            Content = img,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
         };
-
-        button.SetDynamicResource(
-            VisualElement.BackgroundColorProperty,
-            ThemeManager.SurfaceAlt);
-
-        button.SetDynamicResource(
-            Button.TextColorProperty,
-            ThemeManager.Accent);
-
-        return button;
+        border.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.SurfaceAlt);
+        return border;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-
         ThemeManager.Apply();
+
+        // Обновляем цвет иконок при заходе на страницу (на случай смены акцента)
+        if (densityImage != null) 
+            densityImage.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
 
         try
         {
@@ -229,14 +217,7 @@ public class MainPage : ContentPage
         catch (Exception ex)
         {
             cards.Children.Clear();
-
-            var error = new Label
-            {
-                Text = "Не удалось загрузить продукты:\n" + ex.Message,
-                FontSize = 14,
-                TextColor = Color.FromArgb("#FF6878")
-            };
-
+            var error = new Label { Text = "Не удалось загрузить продукты:\n" + ex.Message, FontSize = 14, TextColor = Color.FromArgb("#FF6878") };
             cards.Children.Add(error);
         }
     }
@@ -244,7 +225,6 @@ public class MainPage : ContentPage
     private void Render()
     {
         cards.Children.Clear();
-
         var query = search.Text?.Trim() ?? "";
 
         var filtered = all
@@ -261,14 +241,11 @@ public class MainPage : ContentPage
         {
             var empty = new Label
             {
-                Text = all.Count == 0
-                    ? "Здесь пока нет продуктов.\nНажми «Добавить», чтобы начать."
-                    : "Ничего не найдено.",
+                Text = all.Count == 0 ? "Здесь пока нет продуктов.\nНажми «Добавить», чтобы начать." : "Ничего не найдено.",
                 FontSize = 16,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 28)
             };
-
             ThemeManager.BindText(empty, secondary: true);
             cards.Children.Add(empty);
             return;
@@ -278,7 +255,6 @@ public class MainPage : ContentPage
         {
             var items = group.OrderBy(p => p.ExpiryDate).ToList();
             var product = items[0];
-
             cards.Children.Add(CreateProductCard(product, items));
         }
     }
@@ -290,15 +266,10 @@ public class MainPage : ContentPage
 
         var imageSize = iconOnly ? 62 : compact ? 88 : 114;
 
-        // Единый стиль символов вместо разноцветных эмодзи.
         var imageSymbol = product.Category switch
         {
-            "Молочные" => "◉",
-            "Напитки" => "◇",
-            "Мясо и рыба" => "◈",
-            "Овощи и фрукты" => "❋",
-            "Заморозка" => "❄",
-            _ => "□"
+            "Молочные" => "◉", "Напитки" => "◇", "Мясо и рыба" => "◈",
+            "Овощи и фрукты" => "❋", "Заморозка" => "❄", _ => "□"
         };
 
         var imageLabel = new Label
@@ -310,7 +281,6 @@ public class MainPage : ContentPage
             HorizontalOptions = LayoutOptions.Fill,
             VerticalOptions = LayoutOptions.Fill
         };
-        
         ThemeManager.BindText(imageLabel, secondary: true);
         
         var imagePlaceholder = new Border
@@ -319,43 +289,23 @@ public class MainPage : ContentPage
             HeightRequest = imageSize,
             BackgroundColor = Colors.White,
             StrokeThickness = 0,
-            StrokeShape = new RoundRectangle
-            {
-                CornerRadius = 13
-            },
+            StrokeShape = new RoundRectangle { CornerRadius = 13 },
             Padding = 7,
             Content = imageLabel
         };
 
-        var name = new Label
-        {
-            Text = product.Name,
-            FontSize = iconOnly ? 14 : compact ? 17 : 21,
-            FontAttributes = FontAttributes.Bold,
-            LineBreakMode = LineBreakMode.TailTruncation
-        };
-
+        var name = new Label { Text = product.Name, FontSize = iconOnly ? 14 : compact ? 17 : 21, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.TailTruncation };
         ThemeManager.BindText(name);
 
         var details = new Label
         {
-            Text = string.Join(" • ", new[]
-            {
-                product.Variant,
-                product.Volume,
-                items.Count > 1 ? $"{items.Count} шт." : ""
-            }.Where(s => !string.IsNullOrWhiteSpace(s))),
+            Text = string.Join(" • ", new[] { product.Variant, product.Volume, items.Count > 1 ? $"{items.Count} шт." : "" }.Where(s => !string.IsNullOrWhiteSpace(s))),
             FontSize = compact ? 12 : 15,
             IsVisible = !iconOnly
         };
-
         ThemeManager.BindText(details, secondary: true);
 
-        var expiryLabels = new FlexLayout
-        {
-            Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
-            Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap
-        };
+        var expiryLabels = new FlexLayout { Direction = Microsoft.Maui.Layouts.FlexDirection.Row, Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
 
         foreach (var item in items)
         {
@@ -369,13 +319,7 @@ public class MainPage : ContentPage
             });
         }
 
-        var textContent = new VerticalStackLayout
-        {
-            Spacing = 5,
-            VerticalOptions = LayoutOptions.Center,
-            Children = { name }
-        };
-
+        var textContent = new VerticalStackLayout { Spacing = 5, VerticalOptions = LayoutOptions.Center, Children = { name } };
         if (!iconOnly)
         {
             textContent.Children.Add(details);
@@ -386,106 +330,47 @@ public class MainPage : ContentPage
             textContent.Children.Add(expiryLabels);
         }
 
-        var menuButton = new Button
+        // --- Точки и корзина (Image + Тонирование) ---
+        var menuImg = new Image { Source = "icon_dots.png", WidthRequest = 24, HeightRequest = 24 };
+        menuImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var menuButton = new Border { Content = menuImg, Padding = 4, BackgroundColor = Colors.Transparent };
+        menuButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            Text = "⋮",
-            FontSize = 25,
-            BackgroundColor = Colors.Transparent,
-            WidthRequest = 35,
-            Padding = 0
-        };
+            Command = new Command(async () =>
+            {
+                var options = new List<string> { "Изменить характеристики", "Удалить один экземпляр" };
+                if (items.Count > 1) options.Add("Удалить все экземпляры");
+                var choice = await DisplayActionSheet(product.Name, "Отмена", null, options.ToArray());
 
-        menuButton.SetDynamicResource(
-            Button.TextColorProperty,
-            ThemeManager.Accent);
+                if (choice == "Изменить характеристики") await Navigation.PushAsync(new ProductEditPage(repo, items[0]));
+                else if (choice == "Удалить один экземпляр") { await repo.Delete(items[0]); all = await repo.All(); Render(); }
+                else if (choice == "Удалить все экземпляры") { foreach (var item in items) await repo.Delete(item); all = await repo.All(); Render(); }
+            })
+        });
 
-        menuButton.Clicked += async (_, _) =>
+        var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 24, HeightRequest = 24 };
+        // Корзина всегда красная (не меняет цвет под акцент)
+        deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") });
+        var deleteButton = new Border { Content = deleteImg, Padding = 4, BackgroundColor = Colors.Transparent };
+        deleteButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            var options = new List<string>
+            Command = new Command(async () =>
             {
-                "Изменить характеристики",
-                "Удалить один экземпляр"
-            };
+                var options = items.Count > 1 ? new[] { "Удалить один экземпляр", "Удалить все экземпляры" } : new[] { "Удалить продукт" };
+                var choice = await DisplayActionSheet("Удаление продукта", "Отмена", null, options);
 
-            if (items.Count > 1)
-                options.Add("Удалить все экземпляры");
-
-            var choice = await DisplayActionSheet(
-                product.Name,
-                "Отмена",
-                null,
-                options.ToArray());
-
-            if (choice == "Изменить характеристики")
-            {
-                await Navigation.PushAsync(
-                    new ProductEditPage(repo, items[0]));
-            }
-            else if (choice == "Удалить один экземпляр")
-            {
-                await repo.Delete(items[0]);
-                all = await repo.All();
-                Render();
-            }
-            else if (choice == "Удалить все экземпляры")
-            {
-                foreach (var item in items)
-                    await repo.Delete(item);
+                if (choice == "Удалить один экземпляр" || choice == "Удалить продукт") await repo.Delete(items[0]);
+                else if (choice == "Удалить все экземпляры") foreach (var item in items) await repo.Delete(item);
+                else return;
 
                 all = await repo.All();
                 Render();
-            }
-        };
-
-        var deleteButton = new Button
-        {
-            Text = "⌫",
-            FontSize = 21,
-            TextColor = Color.FromArgb("#FF647D"),
-            BackgroundColor = Colors.Transparent,
-            WidthRequest = 35,
-            Padding = 0
-        };
-
-        deleteButton.Clicked += async (_, _) =>
-        {
-            var options = items.Count > 1
-                ? new[] { "Удалить один экземпляр", "Удалить все экземпляры" }
-                : new[] { "Удалить продукт" };
-
-            var choice = await DisplayActionSheet(
-                "Удаление продукта",
-                "Отмена",
-                null,
-                options);
-
-            if (choice == "Удалить один экземпляр" ||
-                choice == "Удалить продукт")
-            {
-                await repo.Delete(items[0]);
-            }
-            else if (choice == "Удалить все экземпляры")
-            {
-                foreach (var item in items)
-                    await repo.Delete(item);
-            }
-            else
-            {
-                return;
-            }
-
-            all = await repo.All();
-            Render();
-        };
+            })
+        });
 
         var row = new Grid
         {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Auto),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto)
-            },
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
             ColumnSpacing = iconOnly ? 8 : 14,
             VerticalOptions = LayoutOptions.Center
         };
@@ -493,40 +378,21 @@ public class MainPage : ContentPage
         row.Add(imagePlaceholder, 0, 0);
         row.Add(textContent, 1, 0);
 
-        var controls = new VerticalStackLayout
-        {
-            Spacing = 0,
-            VerticalOptions = LayoutOptions.Center,
-            Children = { menuButton, deleteButton }
-        };
-
+        var controls = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center, Children = { menuButton, deleteButton } };
         row.Add(controls, 2, 0);
 
         var originalTint = CategoryStyle.Tint(product.Category);
-
-        // Полупрозрачная заливка сохраняет читаемость текста
-        // и позволяет фону адаптироваться к текущей теме.
-        var translucentTint = Color.FromRgba(
-            originalTint.Red,
-            originalTint.Green,
-            originalTint.Blue,
-            0.22f);
+        var translucentTint = Color.FromRgba(originalTint.Red, originalTint.Green, originalTint.Blue, 0.22f);
 
         var border = new Border
         {
             BackgroundColor = translucentTint,
             StrokeThickness = 1,
-            StrokeShape = new RoundRectangle
-            {
-                CornerRadius = 22
-            },
+            StrokeShape = new RoundRectangle { CornerRadius = 22 },
             Padding = new Thickness(iconOnly ? 10 : 16),
             Content = row
         };
-
-        border.SetDynamicResource(
-            Border.StrokeProperty,
-            ThemeManager.Border);
+        border.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
         return border;
     }
