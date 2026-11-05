@@ -22,7 +22,7 @@ public class SettingsPage : ContentPage
         var langButton = CreateMenuButton("icon_lang.png", "Язык", "Выберите язык интерфейса");
         langButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
-            Command = new Command(async () => await Navigation.PushAsync(new languagesPage()))
+            Command = new Command(async () => await Navigation.PushAsync(new LanguagesPage()))
         });           
 
         var appearance = CreateMenuButton("icon_brush.png", "Внешний вид", "Тема, акцентный цвет и иконка");
