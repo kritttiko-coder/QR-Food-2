@@ -16,15 +16,6 @@ public class CustomizationPage : ContentPage
         "#E45B75", "#D94A9B", "#8B929E"
     };
 
-    readonly (string Id, string Name, string Symbol)[] icons =
-    {
-        ("classic", "Обычная", "▦"),
-        ("winter", "Зимняя", "❄"),
-        ("halloween", "Хэллоуин", "🎃"),
-        ("mono", "Чёрно-белая", "◐"),
-        ("neon", "Неоновая", "✦")
-    };
-
     public CustomizationPage()
     {
         Title = "Внешний вид";
@@ -181,60 +172,90 @@ public class CustomizationPage : ContentPage
     }
 
     void AddIcons()
+{
+    var grid = new Grid
     {
-        var grid = new Grid
+        ColumnDefinitions =
         {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            ColumnSpacing = 10,
-            RowSpacing = 10
+            new ColumnDefinition(GridLength.Star),
+            new ColumnDefinition(GridLength.Star),
+            new ColumnDefinition(GridLength.Star)
+        },
+        RowDefinitions =
+        {
+            new RowDefinition(GridLength.Auto),
+            new RowDefinition(GridLength.Auto)
+        },
+        ColumnSpacing = 10,
+        RowSpacing = 10
+    };
+
+    var iconItems = new[]
+    {
+        (Id: "classic", Name: "Базовая", Source: "appicon_classic.png"),
+        (Id: "winter", Name: "Зимняя", Source: "appicon_winter.png"),
+        (Id: "halloween", Name: "Хэллоуин", Source: "appicon_halloween.png"),
+        (Id: "mono", Name: "Ч/Б", Source: "appicon_mono.png"),
+        (Id: "neon", Name: "Неон", Source: "appicon_neon.png")
+    };
+
+    for (int i = 0; i < iconItems.Length; i++)
+    {
+        var item = iconItems[i];
+        int row = i / 3;
+        int column = i % 3;
+
+        bool selected = ThemeManager.CurrentIcon == item.Id;
+
+        // Контейнер для иконки и подписи
+        var stack = new VerticalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Center };
+
+        var img = new Image 
+        { 
+            Source = item.Source, 
+            WidthRequest = 64, 
+            HeightRequest = 64, 
+            Aspect = Aspect.AspectFit 
         };
 
-        for (int i = 0; i < icons.Length; i++)
+        var label = new Label 
+        { 
+            Text = item.Name, 
+            FontSize = 12, 
+            HorizontalTextAlignment = TextAlignment.Center 
+        };
+        ThemeManager.BindText(label, secondary: !selected);
+
+        stack.Children.Add(img);
+        stack.Children.Add(label);
+
+        // Рамка вокруг иконки
+        var border = new Border
         {
-            var item = icons[i];
-            int row = i / 2;
-            int column = i % 2;
+            StrokeThickness = selected ? 3 : 1,
+            Stroke = selected ? ThemeManager.AccentColor : Color.FromArgb("#333333"),
+            StrokeShape = new RoundRectangle { CornerRadius = 16 },
+            Padding = 8,
+            Content = stack
+        };
+        border.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.SurfaceAlt);
 
-            bool selected = ThemeManager.CurrentIcon == item.Id;
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (_, _) =>
+        {
+            ThemeManager.SetIcon(item.Id);
+            // Перерисовываем страницу, чтобы обновить выделение
+            Content = null; // Очистка (костыль, но рабочий)
+            Content = new ScrollView { Content = content }; 
+            ThemeManager.Apply();
+        };
+        border.GestureRecognizers.Add(tap);
 
-            var button = new Button
-            {
-                Text = $"{item.Symbol}   {item.Name}" + (selected ? "   ✓" : ""),
-                HeightRequest = 64,
-                CornerRadius = 14,
-                FontSize = 14
-            };
-
-            // фон/текст — из темы
-            button.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
-            button.SetDynamicResource(Button.TextColorProperty,           ThemeManager.Text);
-
-            if (selected)
-            {
-                button.BorderColor = ThemeManager.AccentColor;
-                button.BorderWidth = 2;
-            }
-            else
-            {
-                button.SetDynamicResource(Button.BorderColorProperty, ThemeManager.Border);
-                button.BorderWidth = 1;
-            }
-
-            button.Clicked += (_, _) =>
-            {
-                ThemeManager.SetIcon(item.Id);
-                BuildContent();
-            };
-
-            grid.Add(button, column, row);
-        }
-
-        content.Children.Add(grid);
+        grid.Add(border, column, row);
     }
+
+    content.Children.Add(grid);
+}
 
     void AddPreview()
     {
