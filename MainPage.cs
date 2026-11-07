@@ -174,15 +174,18 @@ public class MainPage : ContentPage
     }
 
     private void UpdateDensityIcon()
+{
+    
+    if (densityImage == null) return;
+
+    densityImage.Source = density switch
     {
-        densityImage.Source = density switch
-        {
-            0 => "icon_layout_2.png", // 2 строки
-            1 => "icon_layout_3.png", // 3 строки
-            2 => "icon_layout_4.png", // 4 квадрата
-            _ => "icon_layout_2.png"
-        };
-    }
+        0 => "icon_layout_2.png", // 2 строки
+        1 => "icon_layout_3.png", // 3 строки
+        2 => "icon_layout_4.png", // 4 квадрата
+        _ => "icon_layout_2.png"
+    };
+}
 
     private Border CreateIconButtonWithImage(Image img)
     {
