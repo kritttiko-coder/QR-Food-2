@@ -3,6 +3,7 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using CommunityToolkit.Maui.Behaviors;
+using Microsoft.Maui.Layouts; 
 
 namespace FoodExpiryApp;
 
@@ -247,7 +248,7 @@ public class MainPage : ContentPage
         {
             BackgroundColor = transparentBg,
             StrokeThickness = 0,
-            StrokeShape = new RoundRectangle { CornerRadius = 0, CornerRadiusTopLeft = 24, CornerRadiusTopRight = 24 }, // Скругленные верхние углы
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24, 24, 0, 0) },
             Content = navGrid
         };
 
@@ -322,9 +323,11 @@ public class MainPage : ContentPage
             SwitchTab(prevTab);
         };
 
-        // Добавляем свайпы на основной контент страницы
-        GestureRecognizers.Add(swipeLeft);
-        GestureRecognizers.Add(swipeRight);
+       if (Content != null)
+        {
+            Content.GestureRecognizers.Add(swipeLeft);
+            Content.GestureRecognizers.Add(swipeRight);
+        }
     }
 
     private void UpdateDensityIcon()
