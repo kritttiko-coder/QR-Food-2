@@ -9,12 +9,31 @@ public class CustomizationPage : ContentPage
     readonly VerticalStackLayout content = new() { Spacing = 16 };
 
     readonly string[] colors =
-    {
-        "#A978F5", "#8B5CF6", "#6750A4",
-        "#3978F6", "#21A6D7", "#25B99A",
-        "#55A630", "#D5A52B", "#F08A35",
-        "#E45B75", "#D94A9B", "#8B929E"
-    };
+{
+    // Ряд 1: Фиолетовые и синие (от светлого к темному)
+    "#E8D5FF", "#C4A1FF", "#A978F5", "#8B5CF6", "#6750A4", "#4A3780",
+    
+    // Ряд 2: Голубые и циановые
+    "#D5F0FF", "#A1D9FF", "#65B8FF", "#3978F6", "#1E5AC7", "#144394",
+    
+    // Ряд 3: Бирюзовые и зеленые
+    "#D1F7F0", "#8CE5D5", "#36D1B6", "#25B99A", "#178C74", "#0D664E",
+    
+    // Ряд 4: Лаймовые и желто-зеленые
+    "#E5F7C4", "#C7EE7F", "#A3D63A", "#55A630", "#3D7A1F", "#285213",
+    
+    // Ряд 5: Желтые и оранжевые
+    "#FFFBCC", "#FFED80", "#FFD633", "#D5A52B", "#B07D15", "#7A5507",
+    
+    // Ряд 6: Оранжевые и красные
+    "#FFE0CC", "#FFB380", "#F08A35", "#D65A1B", "#9E3E10", "#6B2608",
+    
+    // Ряд 7: Розовые и малиновые
+    "#FFD1E0", "#FF99C2", "#E45B75", "#C42847", "#94172F", "#5E0D1B",
+    
+    // Ряд 8: Пурпурные и неоновые (добавка в стиле твоего скрина)
+    "#F2D5FF", "#D994FF", "#B84DFF", "#D94A9B", "#A3246B", "#8B929E"
+};
 
     public CustomizationPage()
     {
@@ -120,74 +139,58 @@ public class CustomizationPage : ContentPage
 
         grid.Add(button, column);
     }
-
+    
     void AddColors()
+{
+    // Используем FlexLayout для аккуратной сетки
+    var flex = new FlexLayout
     {
-        var grid = new Grid
+        Direction = Microsoft.Maui.Layouts.FlexDirection.Row,
+        Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap,
+        JustifyContent = Microsoft.Maui.Layouts.FlexJustify.Start,
+        AlignItems = Microsoft.Maui.Layouts.FlexAlignItems.Center
+    };
+
+    foreach (var colorHex in colors)
+    {
+        bool selected = ThemeManager.CurrentAccent == colorHex;
+
+        // Делаем скругленные квадраты (Squarcles)
+        var button = new Button
         {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Star)
-            },
-            RowSpacing = 12,
-            ColumnSpacing = 12
+            Text = selected ? "✓" : "",
+            WidthRequest = 48,
+            HeightRequest = 48,
+            CornerRadius = 14, // Скругленный квадрат, а не круг
+            Padding = 0,
+            BackgroundColor = Color.FromArgb(colorHex),
+            TextColor = Colors.White,
+            BorderColor = selected ? Colors.White : Colors.Transparent,
+            BorderWidth = selected ? 2 : 0,
+            Margin = new Thickness(0, 0, 10, 10) // Отступы между квадратами
         };
 
-        for (int i = 0; i < colors.Length; i++)
+        button.Clicked += (_, _) =>
         {
-            int index = i;
-            int row = i / 4;
-            int column = i % 4;
+            ThemeManager.SetAccent(colorHex);
+            BuildContent(); // Перерисовываем страницу, чтобы обновить галочки
+        };
 
-            bool selected = string.Equals(
-                ThemeManager.CurrentAccent, colors[i],
-                StringComparison.OrdinalIgnoreCase);
-
-            var button = new Button
-            {
-                Text = selected ? "✓" : "",
-                WidthRequest = 48,
-                HeightRequest = 48,
-                CornerRadius = 24,
-                Padding = 0,
-                BackgroundColor = Color.FromArgb(colors[i]),
-                TextColor = Colors.White,
-                BorderColor = selected ? Colors.White : Colors.Transparent,
-                BorderWidth = selected ? 3 : 0
-            };
-
-            button.Clicked += (_, _) =>
-            {
-                ThemeManager.SetAccent(colors[index]);
-                BuildContent();
-            };
-
-            grid.Add(button, column, row);
-        }
-
-        content.Children.Add(grid);
+        flex.Children.Add(button);
     }
 
-    void AddIcons()
+    content.Children.Add(flex);
+}
+
+void AddIcons()
 {
     var grid = new Grid
     {
-        ColumnDefinitions =
-        {
-            new ColumnDefinition(GridLength.Star),
-            new ColumnDefinition(GridLength.Star),
+        ColumnDefinitions = {
+            new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star),
             new ColumnDefinition(GridLength.Star)
         },
-        RowDefinitions =
-        {
-            new RowDefinition(GridLength.Auto),
-            new RowDefinition(GridLength.Auto)
-        },
-        ColumnSpacing = 10,
-        RowSpacing = 10
+        RowSpacing = 10, ColumnSpacing = 10
     };
 
     var iconItems = new[]
@@ -204,50 +207,32 @@ public class CustomizationPage : ContentPage
         var item = iconItems[i];
         int row = i / 3;
         int column = i % 3;
-
         bool selected = ThemeManager.CurrentIcon == item.Id;
 
-        // Контейнер для иконки и подписи
         var stack = new VerticalStackLayout { Spacing = 6, HorizontalOptions = LayoutOptions.Center };
-
-        var img = new Image 
-        { 
-            Source = item.Source, 
-            WidthRequest = 64, 
-            HeightRequest = 64, 
-            Aspect = Aspect.AspectFit 
-        };
-
-        var label = new Label 
-        { 
-            Text = item.Name, 
-            FontSize = 12, 
-            HorizontalTextAlignment = TextAlignment.Center 
-        };
+        var img = new Image { Source = item.Source, WidthRequest = 60, HeightRequest = 60, Aspect = Aspect.AspectFit };
+        var label = new Label { Text = item.Name, FontSize = 12, HorizontalTextAlignment = TextAlignment.Center };
         ThemeManager.BindText(label, secondary: !selected);
 
         stack.Children.Add(img);
         stack.Children.Add(label);
 
-        // Рамка вокруг иконки
         var border = new Border
         {
-            StrokeThickness = selected ? 3 : 1,
-            Stroke = selected ? ThemeManager.AccentColor : Color.FromArgb("#333333"),
-            StrokeShape = new RoundRectangle { CornerRadius = 16 },
+            StrokeThickness = selected ? 2 : 1,
+            Stroke = selected ? ThemeManager.AccentColor : Colors.Transparent,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 16 },
             Padding = 8,
             Content = stack
         };
         border.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.SurfaceAlt);
 
         var tap = new TapGestureRecognizer();
-        tap.Tapped += (_, _) =>
+        tap.Tapped += async (_, _) =>
         {
             ThemeManager.SetIcon(item.Id);
-            // Перерисовываем страницу, чтобы обновить выделение
-            Content = null; // Очистка (костыль, но рабочий)
-            Content = new ScrollView { Content = content }; 
-            ThemeManager.Apply();
+            BuildContent(); // Обновляем UI
+            await Application.Current!.MainPage!.DisplayAlert("Иконка изменена", "Чтобы увидеть новую иконку на рабочем столе, закройте приложение и откройте его снова.", "ОК");
         };
         border.GestureRecognizers.Add(tap);
 
@@ -256,7 +241,7 @@ public class CustomizationPage : ContentPage
 
     content.Children.Add(grid);
 }
-
+    
     void AddPreview()
     {
         var header = new Label
