@@ -11,7 +11,6 @@ public class LocalizationManager : INotifyPropertyChanged
 
     private string _currentLanguageCode;
     
-    // Поддерживаемые языки
     public static readonly string[] SupportedLanguages = { "ru", "en" };
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -34,7 +33,6 @@ public class LocalizationManager : INotifyPropertyChanged
         
         ApplyLanguage(langCode);
         
-        // Оповещаем UI, что язык изменился
         LanguageChanged?.Invoke();
         OnPropertyChanged(nameof(CurrentLanguageCode));
     }
@@ -47,7 +45,6 @@ public class LocalizationManager : INotifyPropertyChanged
         Thread.CurrentThread.CurrentUICulture = culture;
     }
 
-    // Главный метод перевода
     public string this[string key]
     {
         get
@@ -60,32 +57,35 @@ public class LocalizationManager : INotifyPropertyChanged
         }
     }
 
-    // --- СЛОВАРИ ПЕРЕВОДОВ ---
+    // ==========================================
+    // --- РУССКИЙ ЯЗЫК ---
+    // ==========================================
     private string GetRussian(string key) => key switch
     {
-    
-"MyProducts" => "Мои продукты",
-"FridgeCount" => "Ваш холодильник",
-"ProductsCount" => "продуктов",
-"SearchPlaceholder" => "Поиск продуктов...",
-"Scan" => "Сканировать",
-"Add" => "Добавить",
-"Delete" => "Удалить",
-"Days" => "дней",
-"Day" => "день",
-"Expired" => "Просрочен",
-"Today" => "Сегодня",
-"MyProducts" => "My Products",
-"FridgeCount" => "Your fridge",
-"ProductsCount" => "products",
-"SearchPlaceholder" => "Search products...",
-"Scan" => "Scan",
-"Add" => "Add",
-"Delete" => "Delete",
-"Days" => "days",
-"Day" => "day",
-"Expired" => "Expired",
-"Today" => "Today",
+        // Главная страница
+        "MyProducts" => "Мои продукты",
+        "FridgeCount" => "Ваш холодильник",
+        "ProductsCount" => "продуктов",
+        "SearchPlaceholder" => "Поиск продуктов...",
+        "Scan" => "Сканировать",
+        "Add" => "Добавить",
+        "EmptyFridge" => "Здесь пока нет продуктов.\nНажми «Добавить», чтобы начать.",
+        "NothingFound" => "Ничего не найдено.",
+        
+        // Всплывающие меню продуктов
+        "Edit" => "Изменить",
+        "DeleteOne" => "Удалить один",
+        "DeleteAll" => "Удалить все",
+        "DeleteProduct" => "Удалить",
+        "Cancel" => "Отмена",
+        
+        // Дни и время
+        "Days" => "дней",
+        "Day" => "день",
+        "Expired" => "Просрочен",
+        "Today" => "Сегодня",
+        
+        // Настройки (SettingsPage)
         "Settings" => "Настройки",
         "Personalize" => "Персонализируйте и изменяйте приложение под себя",
         "Language" => "Язык",
@@ -102,34 +102,78 @@ public class LocalizationManager : INotifyPropertyChanged
         "HelpDesc" => "Сообщить о проблеме или ошибке",
         "Version" => "версия 0.2.0",
         "Beta" => "Бета",
+
+        // Кастомизация (CustomizationPage)
+        "Theme" => "Тема",
+        "ThemeBlack" => "Чёрная",
+        "ThemeDark" => "Тёмная",
+        "ThemeLight" => "Светлая",
+        "AccentColor" => "Акцентный цвет",
+        "AppIcon" => "Иконка приложения",
+        "Preview" => "Предпросмотр",
+        "IconClassic" => "Базовая",
+        "IconWinter" => "Зимняя",
+        "IconHalloween" => "Хэллоуин",
+        "IconMono" => "Ч/Б",
+        "IconNeon" => "Неон",
+
+        // Добавление продукта (ProductEditPage)
+        "NewProduct" => "Новый продукт",
+        "Name" => "Название",
+        "Brand" => "Бренд",
+        "Variant" => "Разновидность, например 2.5%",
+        "Volume" => "Объём / масса, например 0.930 л",
+        "Barcode" => "Штрихкод / код маркировки",
+        "Category" => "Категория",
+        "ExpiryDate" => "Срок годности",
+        "Save" => "Сохранить",
+        "CatDairy" => "Молочные",
+        "CatDrinks" => "Напитки",
+        "CatMeat" => "Мясо и рыба",
+        "CatVeg" => "Овощи и фрукты",
+        "CatFreezer" => "Заморозка",
+        "CatOther" => "Другое",
+
+        // Поддержка
+        "SupportAuthor" => "Поддержать разработчика",
+        "ThanksSupport" => "Спасибо, что помогаешь развивать FoodExpiryApp ❤️",
+        "Coffee" => "На чашку кофе — 70 ₽",
+        "Cookie" => "Пачку печенек — 120 ₽",
+        "GoldCookie" => "Золотые печеньки — 500 ₽",
+        "PaymentNote" => "Оплата пока не подключена. Для реальных пожертвований потребуется платёжный сервис или официальная ссылка.",
+
         _ => key
     };
 
+    // ==========================================
+    // --- English language ---
+    // ==========================================
     private string GetEnglish(string key) => key switch
     {
-    
-"MyProducts" => "Мои продукты",
-"FridgeCount" => "Ваш холодильник",
-"ProductsCount" => "продуктов",
-"SearchPlaceholder" => "Поиск продуктов...",
-"Scan" => "Сканировать",
-"Add" => "Добавить",
-"Delete" => "Удалить",
-"Days" => "дней",
-"Day" => "день",
-"Expired" => "Просрочен",
-"Today" => "Сегодня",
-"MyProducts" => "My Products",
-"FridgeCount" => "Your fridge",
-"ProductsCount" => "products",
-"SearchPlaceholder" => "Search products...",
-"Scan" => "Scan",
-"Add" => "Add",
-"Delete" => "Delete",
-"Days" => "days",
-"Day" => "day",
-"Expired" => "Expired",
-"Today" => "Today",
+        // Main Page
+        "MyProducts" => "My Products",
+        "FridgeCount" => "Your fridge",
+        "ProductsCount" => "products",
+        "SearchPlaceholder" => "Search products...",
+        "Scan" => "Scan",
+        "Add" => "Add",
+        "EmptyFridge" => "No products yet.\nTap 'Add' to start.",
+        "NothingFound" => "Nothing found.",
+        
+        // Action Sheets
+        "Edit" => "Edit",
+        "DeleteOne" => "Delete one",
+        "DeleteAll" => "Delete all",
+        "DeleteProduct" => "Delete",
+        "Cancel" => "Cancel",
+        
+        // Days & Time
+        "Days" => "days",
+        "Day" => "day",
+        "Expired" => "Expired",
+        "Today" => "Today",
+        
+        // Settings
         "Settings" => "Settings",
         "Personalize" => "Personalize and customize the app",
         "Language" => "Language",
@@ -146,6 +190,46 @@ public class LocalizationManager : INotifyPropertyChanged
         "HelpDesc" => "Report a problem or error",
         "Version" => "version 0.2.0",
         "Beta" => "Beta",
+
+        // Customization
+        "Theme" => "Theme",
+        "ThemeBlack" => "Black",
+        "ThemeDark" => "Dark",
+        "ThemeLight" => "Light",
+        "AccentColor" => "Accent color",
+        "AppIcon" => "App icon",
+        "Preview" => "Preview",
+        "IconClassic" => "Classic",
+        "IconWinter" => "Winter",
+        "IconHalloween" => "Halloween",
+        "IconMono" => "B&W",
+        "IconNeon" => "Neon",
+
+        // Product Edit
+        "NewProduct" => "New Product",
+        "Name" => "Name",
+        "Brand" => "Brand",
+        "Variant" => "Variant, e.g. 2.5%",
+        "Volume" => "Volume / weight, e.g. 0.930 L",
+        "Barcode" => "Barcode",
+        "Category" => "Category",
+        "ExpiryDate" => "Expiry date",
+        "Save" => "Save",
+        "CatDairy" => "Dairy",
+        "CatDrinks" => "Drinks",
+        "CatMeat" => "Meat & Fish",
+        "CatVeg" => "Vegetables & Fruits",
+        "CatFreezer" => "Frozen",
+        "CatOther" => "Other",
+
+        // Support
+        "SupportAuthor" => "Support the developer",
+        "ThanksSupport" => "Thank you for helping develop FoodExpiryApp ❤️",
+        "Coffee" => "A cup of coffee — $1",
+        "Cookie" => "A pack of cookies — $2",
+        "GoldCookie" => "Golden cookies — $5",
+        "PaymentNote" => "Payment is not connected yet. A payment service or official link is required for real donations.",
+
         _ => key
     };
 
@@ -153,7 +237,7 @@ public class LocalizationManager : INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
-// Удобный шорткат для использования в XAML или коде
+
 public static class Loc
 {
     public static string T(string key) => LocalizationManager.Instance[key];
