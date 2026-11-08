@@ -28,22 +28,25 @@
         <AndroidPackageFormat>apk</AndroidPackageFormat>
     </PropertyGroup>
 
-    
     <ItemGroup>
         <!-- Иконки интерфейса (кнопки, меню, превью в настройках) -->
         <MauiImage Include="Resources\Images\*" />
 
-        <!-- Шрифты -->
+        <!-- Шрифты (оставлено для будущего) -->
         <MauiFont Include="Resources\Fonts\*" />
 
-        <!-- App Icon (fallback для Android, если activity-alias не сработает) -->
+        <!-- App Icon (раскомментируй, позже) -->
+        <!--
         <MauiIcon Include="Resources\AppIcon\appicon.svg"
                   Color="#A978F5" />
+        -->
 
-        <!-- Splash Screen -->
-        //<MauiSplashScreen Include="Resources\Splash\splash.svg"
-                         // Color="#09090F"
-                         // BaseSize="128,128" />
+        <!-- Splash Screen (закомментировано) -->
+        <!--
+        <MauiSplashScreen Include="Resources\Splash\splash.svg"
+                          Color="#09090F"
+                          BaseSize="128,128" />
+        -->
     </ItemGroup>
 
     <ItemGroup>
