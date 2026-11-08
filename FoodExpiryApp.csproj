@@ -41,9 +41,9 @@
                   Color="#A978F5" />
 
         <!-- Splash Screen -->
-        <MauiSplashScreen Include="Resources\Splash\splash.svg"
-                          Color="#09090F"
-                          BaseSize="128,128" />
+        //<MauiSplashScreen Include="Resources\Splash\splash.svg"
+                         // Color="#09090F"
+                         // BaseSize="128,128" />
     </ItemGroup>
 
     <ItemGroup>
