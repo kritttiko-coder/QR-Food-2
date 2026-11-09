@@ -20,7 +20,7 @@ public class MainPage : ContentPage
     public MainPage(ProductRepository repository)
     {
         repo = repository;
-        Title = "Мои продукты";
+        Title = Loc.T("MyProducts");
         Padding = 0;
         ThemeManager.Apply();
         ThemeManager.BindPage(this);
@@ -95,13 +95,9 @@ public class MainPage : ContentPage
     {
         var border = new Border
         {
-            WidthRequest = 58,
-            HeightRequest = 58,
-            StrokeThickness = 0,
+            WidthRequest = 58, HeightRequest = 58, StrokeThickness = 0,
             StrokeShape = new RoundRectangle { CornerRadius = 19 },
-            Content = img,
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center
+            Content = img, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center
         };
         border.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.SurfaceAlt);
         return border;
@@ -150,7 +146,7 @@ public class MainPage : ContentPage
         {
             var empty = new Label
             {
-                Text = all.Count == 0 ? "Здесь пока нет продуктов.\nНажми «Добавить», чтобы начать." : "Ничего не найдено.",
+                Text = all.Count == 0 ? Loc.T("EmptyFridge") : Loc.T("NothingFound"),
                 FontSize = 16,
                 HorizontalTextAlignment = TextAlignment.Center,
                 Margin = new Thickness(0, 28),
@@ -168,20 +164,22 @@ public class MainPage : ContentPage
 
             var card = CreateProductCard(product, items);
 
-            if (density == 0)
+            //  ИСПРАВЛЕННЫЕ РЕЖИМЫ
+            if (density == 0) // Большой (1 в ряд)
             {
                 card.WidthRequest = -1;
                 FlexLayout.SetBasis(card, new FlexBasis(1f, true));
                 card.Margin = new Thickness(0, 0, 0, 14);
             }
-            else if (density == 1)
+            else if (density == 1) // Маленький (1 в ряд)
             {
-                FlexLayout.SetBasis(card, new FlexBasis(0.48f, true));
+                card.WidthRequest = -1;
+                FlexLayout.SetBasis(card, new FlexBasis(1f, true));
                 card.Margin = new Thickness(0, 0, 0, 10);
             }
-            else
+            else // Сетка (2 в ряд) - никаких 3!
             {
-                FlexLayout.SetBasis(card, new FlexBasis(0.31f, true));
+                FlexLayout.SetBasis(card, new FlexBasis(0.48f, true));
                 card.Margin = new Thickness(0, 0, 0, 10);
             }
 
@@ -194,7 +192,8 @@ public class MainPage : ContentPage
         var compact = density >= 1;
         var iconOnly = density == 2;
 
-        var imageSize = iconOnly ? 50 : compact ? 64 : 90;
+        //  Размеры иконок подстроены под режимы
+        var imageSize = iconOnly ? 60 : compact ? 80 : 100;
 
         var imageSymbol = product.Category switch
         {
@@ -209,7 +208,7 @@ public class MainPage : ContentPage
         var imageLabel = new Label
         {
             Text = imageSymbol,
-            FontSize = iconOnly ? 24 : compact ? 30 : 44,
+            FontSize = iconOnly ? 24 : compact ? 32 : 44,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalTextAlignment = TextAlignment.Center,
             HorizontalOptions = LayoutOptions.Fill,
@@ -219,10 +218,8 @@ public class MainPage : ContentPage
 
         var imagePlaceholder = new Border
         {
-            WidthRequest = imageSize,
-            HeightRequest = imageSize,
-            BackgroundColor = Colors.Black,
-            StrokeThickness = 0,
+            WidthRequest = imageSize, HeightRequest = imageSize,
+            BackgroundColor = Colors.Black, StrokeThickness = 0,
             StrokeShape = new RoundRectangle { CornerRadius = 13 },
             Content = imageLabel
         };
@@ -262,36 +259,37 @@ public class MainPage : ContentPage
             textContent.Children.Add(expiryLabels);
         }
 
-        // --- Точки и корзина ---
+        // --- Точки и корзина (РАЗДЕЛЕНЫ) ---
         var menuImg = new Image { Source = "icon_dots.png", WidthRequest = 20, HeightRequest = 20 };
         menuImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        var menuButton = new Border { Content = menuImg, Padding = 4, BackgroundColor = Colors.Transparent, HeightRequest = 28 };
+        var menuButton = new Border { Content = menuImg, Padding = 4, BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Start };
         menuButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () =>
             {
-                var options = new List<string> { "Изменить", "Удалить один" };
-                if (items.Count > 1) options.Add("Удалить все");
-                var choice = await DisplayActionSheet(product.Name, "Отмена", null, options.ToArray());
+                var options = new List<string> { Loc.T("Edit"), Loc.T("DeleteOne") };
+                if (items.Count > 1) options.Add(Loc.T("DeleteAll"));
+                var choice = await DisplayActionSheet(product.Name, Loc.T("Cancel"), null, options.ToArray());
 
-                if (choice == "Изменить") await Navigation.PushAsync(new ProductEditPage(repo, items[0]));
-                else if (choice == "Удалить один") { await repo.Delete(items[0]); all = await repo.All(); Render(); }
-                else if (choice == "Удалить все") { foreach (var item in items) await repo.Delete(item); all = await repo.All(); Render(); }
+                if (choice == Loc.T("Edit")) await Navigation.PushAsync(new ProductEditPage(repo, items[0]));
+                else if (choice == Loc.T("DeleteOne")) { await repo.Delete(items[0]); all = await repo.All(); Render(); }
+                else if (choice == Loc.T("DeleteAll")) { foreach (var item in items) await repo.Delete(item); all = await repo.All(); Render(); }
             })
         });
 
         var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 20, HeightRequest = 20 };
         deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") });
-        var deleteButton = new Border { Content = deleteImg, Padding = 4, BackgroundColor = Colors.Transparent, HeightRequest = 28 };
+        // ✅ Мусорка с отступом справа (ближе к центру) и по центру по вертикали
+        var deleteButton = new Border { Content = deleteImg, Padding = 4, BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(0, 0, 15, 0) };
         deleteButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () =>
             {
-                var options = items.Count > 1 ? new[] { "Удалить один", "Удалить все" } : new[] { "Удалить" };
-                var choice = await DisplayActionSheet("Удаление", "Отмена", null, options);
+                var options = items.Count > 1 ? new[] { Loc.T("DeleteOne"), Loc.T("DeleteAll") } : new[] { Loc.T("DeleteProduct") };
+                var choice = await DisplayActionSheet(Loc.T("Delete"), Loc.T("Cancel"), null, options);
 
-                if (choice == "Удалить один" || choice == "Удалить") await repo.Delete(items[0]);
-                else if (choice == "Удалить все") foreach (var item in items) await repo.Delete(item);
+                if (choice == Loc.T("DeleteOne") || choice == Loc.T("DeleteProduct")) await repo.Delete(items[0]);
+                else if (choice == Loc.T("DeleteAll")) foreach (var item in items) await repo.Delete(item);
                 else return;
 
                 all = await repo.All();
@@ -299,29 +297,24 @@ public class MainPage : ContentPage
             })
         });
 
-        var controls = new VerticalStackLayout
-        {
-            Spacing = 2,
-            VerticalOptions = LayoutOptions.Start,
-            HorizontalOptions = LayoutOptions.End,
-            Children = { menuButton, deleteButton }
-        };
-
+        // ✅ 4 КОЛОНКИ: Картинка | Текст | Мусорка | Точки
         var row = new Grid
         {
             ColumnDefinitions =
             {
-                new ColumnDefinition(GridLength.Auto),
-                new ColumnDefinition(GridLength.Star),
-                new ColumnDefinition(GridLength.Auto)
+                new ColumnDefinition(GridLength.Auto),   // Картинка
+                new ColumnDefinition(GridLength.Star),   // Текст
+                new ColumnDefinition(GridLength.Auto),   // Мусорка (ближе к центру)
+                new ColumnDefinition(GridLength.Auto)    // Точки (на краю)
             },
-            ColumnSpacing = 10,
+            ColumnSpacing = 8,
             VerticalOptions = LayoutOptions.Center
         };
 
         row.Add(imagePlaceholder, 0, 0);
         row.Add(textContent, 1, 0);
-        row.Add(controls, 2, 0);
+        row.Add(deleteButton, 2, 0); 
+        row.Add(menuButton, 3, 0);   
 
         var originalTint = CategoryStyle.Tint(product.Category);
         var translucentTint = Color.FromRgba(originalTint.Red, originalTint.Green, originalTint.Blue, 0.45f);
