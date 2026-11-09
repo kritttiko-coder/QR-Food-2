@@ -11,7 +11,7 @@ public static class MauiProgram
 
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit();             
+            .UseMauiCommunityToolkit()         
             .UseBarcodeReader() // <--- Для сканера
             .UseOcr();          // <--- Для распознавания текста
 
