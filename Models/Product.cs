@@ -1,1 +1,25 @@
-using SQLite; namespace FoodExpiryApp.Models; public class Product { [PrimaryKey,AutoIncrement] public int Id {get;set;} public string Name {get;set;}=""; public string Brand {get;set;}=""; public string Variant {get;set;}=""; public string Category {get;set;}="Другое"; public string Volume {get;set;}=""; public string Barcode {get;set;}=""; public DateTime ExpiryDate {get;set;}=DateTime.Today.AddDays(7); public string GroupKey => $"{Name.Trim().ToLowerInvariant()}|{Brand.Trim().ToLowerInvariant()}|{Variant.Trim().ToLowerInvariant()}|{Category}|{Volume.Trim().ToLowerInvariant()}"; }
+using SQLite;
+
+namespace FoodExpiryApp.Models;
+
+public class Product
+{
+    [PrimaryKey, AutoIncrement] public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Brand { get; set; } = "";
+    public string Variant { get; set; } = "";
+    public string Category { get; set; } = "Другое";
+    public string Volume { get; set; } = "";
+    public string Barcode { get; set; } = "";
+    public DateTime ExpiryDate { get; set; } = DateTime.Today.AddDays(7);
+
+    //Поля для сканирования (Честный ЗНАК + OpenFoodFacts)
+    public string? Gtin { get; set; }
+    public string? Serial { get; set; }
+    public string? RemoteImageUrl { get; set; }
+    public string? LocalImagePath { get; set; }
+    public string? SourcesCsv { get; set; }
+
+    [Ignore] public string GroupKey => $"{Name.Trim().ToLowerInvariant()}|{Brand.Trim().ToLowerInvariant()}|{Variant.Trim().ToLowerInvariant()}|{Category}|{Volume.Trim().ToLowerInvariant()}";
+    [Ignore] public bool HasLocalImage => !string.IsNullOrEmpty(LocalImagePath) && File.Exists(LocalImagePath);
+}
