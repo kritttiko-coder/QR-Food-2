@@ -18,6 +18,7 @@ public class BottomNavBar : ContentView
             Padding = new Thickness(10, 8, 10, 16)
         };
 
+        // 4 кнопки: Меню, Магазин, Аккаунт, Настройки
         string[] icons = { "icon_menu.png", "icon_store.png", "icon_account.png", "icon_gear.png" };
 
         for (int i = 0; i < 4; i++)
@@ -40,16 +41,7 @@ public class BottomNavBar : ContentView
             tap.Tapped += (_, _) => 
             {
                 if (tabIndex == currentTab) return; // Уже здесь
-
-                // Переключаем страницы (сбрасываем стек навигации)
-                Application.Current!.MainPage = tabIndex switch
-                {
-                    0 => new NavigationPage(new MainPage(repo)),
-                    1 => new NavigationPage(new MainPage(repo)), // Заглушка для магазина
-                    2 => new NavigationPage(new MainPage(repo)), // Заглушка для аккаунта
-                    3 => new NavigationPage(new SettingsPage(repo)), // Настройки
-                    _ => new NavigationPage(new MainPage(repo))
-                };
+                SwitchToTab(tabIndex, repo); // Вызываем наш новый метод
             };
             border.GestureRecognizers.Add(tap);
 
@@ -66,5 +58,20 @@ public class BottomNavBar : ContentView
             StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24, 24, 0, 0) },
             Content = navGrid
         };
+    }
+
+    // МЕТОД ДЛЯ ПЕРЕКЛЮЧЕНИЯ 
+    public static void SwitchToTab(int tabIndex, ProductRepository repo)
+    {
+        Page nextPage = tabIndex switch
+        {
+            0 => new MainPage(repo),
+            1 => new MainPage(repo), // Заглушка для магазина
+            2 => new MainPage(repo), // Заглушка для аккаунта
+            3 => new SettingsPage(repo), // Настройки
+            _ => new MainPage(repo)
+        };
+        
+        Application.Current!.MainPage = new NavigationPage(nextPage);
     }
 }
