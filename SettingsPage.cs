@@ -7,7 +7,7 @@ namespace FoodExpiryApp;
 
 public class SettingsPage : ContentPage
 {
-    public SettingsPage()
+    public SettingsPage(ProductRepository repo) 
     {
         Title = Loc.T("Settings");
         ThemeManager.BindPage(this);
@@ -18,42 +18,23 @@ public class SettingsPage : ContentPage
         var subtitle = new Label { Text = Loc.T("Personalize"), FontSize = 13 };
         ThemeManager.BindText(subtitle, secondary: true);
 
-        
         var langButton = CreateMenuButton("icon_lang.png", Loc.T("Language"), Loc.T("ChooseLanguage"));
-        langButton.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () => await Navigation.PushAsync(new LanguagesPage()))
-        });
+        langButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new LanguagesPage())) });
 
         var appearance = CreateMenuButton("icon_brush.png", Loc.T("Appearance"), Loc.T("AppearanceDesc"));
-        appearance.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () => await Navigation.PushAsync(new CustomizationPage()))
-        });
+        appearance.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new CustomizationPage())) });
 
         var dateTime = CreateMenuButton("icon_clock.png", Loc.T("DateTime"), Loc.T("DateTimeDesc"));
-        dateTime.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () => await Navigation.PushAsync(new DateTimeSettingsPage()))
-        });
+        dateTime.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new DateTimeSettingsPage())) });
 
         var info = CreateMenuButton("icon_info.png", Loc.T("Info"), Loc.T("InfoDesc"));
-        info.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () => await Navigation.PushAsync(new InfoPage()))
-        });
+        info.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new InfoPage())) });
 
         var donation = CreateMenuButton("icon_coffee.png", Loc.T("Support"), Loc.T("SupportDesc"));
-        donation.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () => await Navigation.PushAsync(new SupportPage()))
-        });
+        donation.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new SupportPage())) });
 
         var help = CreateMenuButton("icon_help.png", Loc.T("Help"), Loc.T("HelpDesc"));
-        help.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () => await Navigation.PushAsync(new HelpPage()))
-        });
+        help.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new HelpPage())) });
 
         var version = new Label
         {
@@ -64,7 +45,7 @@ public class SettingsPage : ContentPage
         };
         ThemeManager.BindText(version, secondary: true);
 
-        Content = new ScrollView
+        var scrollContent = new ScrollView
         {
             Content = new VerticalStackLayout
             {
@@ -73,6 +54,21 @@ public class SettingsPage : ContentPage
                 Children = { heading, subtitle, langButton, appearance, dateTime, info, donation, help, version }
             }
         };
+
+        // --- СОБИРАЕМ СТРАНИЦУ: КОНТЕНТ СВЕРХУ, НАВИГАЦИЯ СНИЗУ ---
+        var mainGrid = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition(GridLength.Star),
+                new RowDefinition(GridLength.Auto)
+            }
+        };
+
+        mainGrid.Add(scrollContent, 0, 0);
+        mainGrid.Add(new BottomNavBar(3, repo), 0, 1); // 3 = индекс вкладки "Настройки"
+
+        Content = mainGrid;
         
         ThemeManager.Apply();
     }
@@ -88,29 +84,17 @@ public class SettingsPage : ContentPage
         var descLabel = new Label { Text = description, FontSize = 12 };
         ThemeManager.BindText(descLabel, secondary: true);
 
-        var textStack = new VerticalStackLayout
-        {
-            Spacing = 2,
-            VerticalOptions = LayoutOptions.Center,
-            Children = { titleLabel, descLabel }
-        };
+        var textStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center, Children = { titleLabel, descLabel } };
 
         var grid = new Grid
         {
             ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) },
-            ColumnSpacing = 16,
-            Padding = new Thickness(16, 12)
+            ColumnSpacing = 16, Padding = new Thickness(16, 12)
         };
         grid.Add(icon, 0, 0);
         grid.Add(textStack, 1, 0);
 
-        var border = new Border
-        {
-            StrokeThickness = 1,
-            StrokeShape = new RoundRectangle { CornerRadius = 16 },
-            Content = grid
-        };
-        
+        var border = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = grid };
         border.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
         border.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
