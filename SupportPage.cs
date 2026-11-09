@@ -9,7 +9,7 @@ public class SupportPage : ContentPage
 {
     public SupportPage()
     {
-        Title = "Поддержка";
+        Title = Loc.T("Support");
         ThemeManager.BindPage(this);
 
         var content = new VerticalStackLayout { Padding = 22, Spacing = 14 };
@@ -19,24 +19,24 @@ public class SupportPage : ContentPage
         var coffeeIcon = new Image { Source = "icon_coffee.png", WidthRequest = 30, HeightRequest = 30 };
         coffeeIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         
-        var title = new Label { Text = "Поддержать разработчика", FontSize = 26, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center };
+        var title = new Label { Text = Loc.T("SupportAuthor"), FontSize = 26, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center };
         ThemeManager.BindText(title);
         
         headerLayout.Children.Add(coffeeIcon);
         headerLayout.Children.Add(title);
         content.Children.Add(headerLayout);
 
-        var subtitle = new Label { Text = "Спасибо, что помогаешь развивать FoodExpiryApp ❤️" };
+        var subtitle = new Label { Text = Loc.T("ThanksSupport") };
         ThemeManager.BindText(subtitle, secondary: true);
         content.Children.Add(subtitle);
 
-        AddSupportButton(content, "icon_coffee.png", "На чашку кофе — 70 ₽");
-        AddSupportButton(content, "icon_cookie.png", "Пачку печенек — 120 ₽"); 
-        AddSupportButton(content, "icon_crown.png", "Золотые печеньки — 500 ₽"); 
+        AddSupportButton(content, "icon_coffee.png", Loc.T("Coffee"));
+        AddSupportButton(content, "icon_cookie.png", Loc.T("Cookie")); 
+        AddSupportButton(content, "icon_crown.png", Loc.T("GoldCookie")); 
 
         content.Children.Add(new Label
         {
-            Text = "Оплата пока не подключена. Для реальных пожертвований потребуется платёжный сервис или официальная ссылка.",
+            Text = Loc.T("PaymentNote"),
             TextColor = Color.FromArgb("#FFB65C"),
             Margin = new Thickness(0, 10, 0, 0)
         });
@@ -67,7 +67,8 @@ public class SupportPage : ContentPage
         button.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.SurfaceAlt);
         
         var tap = new TapGestureRecognizer();
-        tap.Tapped += async (_, _) => await DisplayAlert("Поддержка", "Интерфейс готов, реальная оплата пока не подключена.", "ОК");
+        // Переводим и текст всплывающего окна, и кнопку "ОК"
+        tap.Tapped += async (_, _) => await DisplayAlert(Loc.T("Support"), Loc.T("PaymentNotConnected"), Loc.T("OK"));
         button.GestureRecognizers.Add(tap);
         
         layout.Children.Add(button);
