@@ -46,11 +46,11 @@ public class SettingsPage : ContentPage
 
         // СВАЙПЫ НА ВСЮ СТРАНИЦУ (Влево - на Главную)
         var swipeLeft = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
+        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
         mainGrid.GestureRecognizers.Add(swipeLeft);
 
         var swipeRight = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo);
+        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
         mainGrid.GestureRecognizers.Add(swipeRight);
 
         Content = mainGrid;
