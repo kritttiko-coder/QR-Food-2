@@ -262,62 +262,106 @@ public class MainPage : ContentPage
             textContent.Children.Add(expiryLabels);
         }
 
-        // --- Точки и корзина (РАЗДЕЛЕНЫ) ---
-        var menuImg = new Image { Source = "icon_dots.png", WidthRequest = 20, HeightRequest = 20 };
-        menuImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        var menuButton = new Border { Content = menuImg, Padding = 4, BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Start };
-        menuButton.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () =>
-            {
-                var options = new List<string> { Loc.T("Edit"), Loc.T("DeleteOne") };
-                if (items.Count > 1) options.Add(Loc.T("DeleteAll"));
-                var choice = await DisplayActionSheet(product.Name, Loc.T("Cancel"), null, options.ToArray());
+        // Точки и корзина
 
-                if (choice == Loc.T("Edit")) await Navigation.PushAsync(new ProductEditPage(repo, items[0]));
-                else if (choice == Loc.T("DeleteOne")) { await repo.Delete(items[0]); all = await repo.All(); Render(); }
-                else if (choice == Loc.T("DeleteAll")) { foreach (var item in items) await repo.Delete(item); all = await repo.All(); Render(); }
-            })
-        });
+// 1. Мусорка
+var deleteImg = new Image 
+{ 
+    Source = "icon_trash.png", 
+    WidthRequest = 24, 
+    HeightRequest = 24, 
+    HorizontalOptions = LayoutOptions.Center,
+    VerticalOptions = LayoutOptions.Center 
+};
+deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") }); // Красный цвет
 
-        var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 20, HeightRequest = 20 };
-        deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") });
-        // ✅ Мусорка с отступом справа (ближе к центру) и по центру по вертикали
-        var deleteButton = new Border { Content = deleteImg, Padding = 8, BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(0, 0, 15, 0) };
-        deleteButton.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(async () =>
-            {
-                var options = items.Count > 1 ? new[] { Loc.T("DeleteOne"), Loc.T("DeleteAll") } : new[] { Loc.T("DeleteProduct") };
-                var choice = await DisplayActionSheet(Loc.T("Delete"), Loc.T("Cancel"), null, options);
+// Контейнер мусорки: растягиваем по высоте, чтобы кнопка была большой и удобной
+var deleteButton = new Grid 
+{ 
+    WidthRequest = 40, // Ширина зоны нажатия
+    VerticalOptions = LayoutOptions.Fill, 
+    Children = { deleteImg } 
+};
+deleteButton.GestureRecognizers.Add(new TapGestureRecognizer
+{
+    Command = new Command(async () => 
+    {
+        var options = items.Count > 1 ? new[] { Loc.T("DeleteOne"), Loc.T("DeleteAll") } : new[] { Loc.T("DeleteProduct") };
+        var choice = await DisplayActionSheet(Loc.T("Delete"), Loc.T("Cancel"), null, options);
 
-                if (choice == Loc.T("DeleteOne") || choice == Loc.T("DeleteProduct")) await repo.Delete(items[0]);
-                else if (choice == Loc.T("DeleteAll")) foreach (var item in items) await repo.Delete(item);
-                else return;
+        if (choice == Loc.T("DeleteOne") || choice == Loc.T("DeleteProduct")) await repo.Delete(items[0]);
+        else if (choice == Loc.T("DeleteAll")) foreach (var item in items) await repo.Delete(item);
+        else return;
 
-                all = await repo.All();
-                Render();
-            })
-        });
+        all = await repo.All();
+        Render();
+    })
+});
+
+// 2. Точки (Меню)
+var menuImg = new Image 
+{ 
+    Source = "icon_dots.png", 
+    WidthRequest = 24, 
+    HeightRequest = 24, 
+    HorizontalOptions = LayoutOptions.Center,
+    VerticalOptions = LayoutOptions.Center 
+};
+menuImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+
+// Контейнер точек: тоже растягиваем на всю высоту карточки (как ты и просил)
+var menuButton = new Grid 
+{ 
+    WidthRequest = 40, 
+    VerticalOptions = LayoutOptions.Fill, // <-- ВОТ ЭТО РАСТЯГИВАЕТ НА ВСЮ ВЫСОТУ
+    Children = { menuImg } 
+};
+menuButton.GestureRecognizers.Add(new TapGestureRecognizer
+{
+    Command = new Command(async () =>
+    {
+        var options = new List<string> { Loc.T("Edit"), Loc.T("DeleteOne") };
+        if (items.Count > 1) options.Add(Loc.T("DeleteAll"));
+        var choice = await DisplayActionSheet(product.Name, Loc.T("Cancel"), null, options.ToArray());
+
+        if (choice == Loc.T("Edit")) await Navigation.PushAsync(new ProductEditPage(repo, items[0]));
+        else if (choice == Loc.T("DeleteOne")) { await repo.Delete(items[0]); all = await repo.All(); Render(); }
+        else if (choice == Loc.T("DeleteAll")) { foreach (var item in items) await repo.Delete(item); all = await repo.All(); Render(); }
+    })
+});
+
+// 3. Объединяем их в горизонтальную сетку
+var controls = new Grid
+{
+    ColumnDefinitions = 
+    {
+        new ColumnDefinition(GridLength.Auto), // Для мусорки
+        new ColumnDefinition(GridLength.Auto)  // Для точек
+    },
+    ColumnSpacing = 8,
+    VerticalOptions = LayoutOptions.Fill // Занимает всю высоту
+};
+
+controls.Add(deleteButton, 0, 0);
+controls.Add(menuButton, 1, 0);
+        
 
         // ✅ 4 КОЛОНКИ: Картинка | Текст | Мусорка | Точки
         var row = new Grid
-        {
-            ColumnDefinitions =
-            {
-                new ColumnDefinition(GridLength.Auto),   // Картинка
-                new ColumnDefinition(GridLength.Star),   // Текст
-                new ColumnDefinition(GridLength.Auto),   // Мусорка (ближе к центру)
-                new ColumnDefinition(GridLength.Auto)    // Точки (на краю)
-            },
-            ColumnSpacing = 8,
-            VerticalOptions = LayoutOptions.Center
-        };
+{
+    ColumnDefinitions =
+    {
+        new ColumnDefinition(GridLength.Auto), // 0: Картинка
+        new ColumnDefinition(GridLength.Star), // 1: Текст (занимает всё свободное место)
+        new ColumnDefinition(GridLength.Auto)  // 2: Наши кнопки (Мусорка + Точки)
+    },
+    ColumnSpacing = 10,
+    VerticalOptions = LayoutOptions.Fill // <-- Важно, чтобы грид тянулся
+};
 
-        row.Add(imagePlaceholder, 0, 0);
-        row.Add(textContent, 1, 0);
-        row.Add(deleteButton, 2, 0); 
-        row.Add(menuButton, 3, 0);   
+row.Add(imagePlaceholder, 0, 0);
+row.Add(textContent, 1, 0);
+row.Add(controls, 2, 0); // Добавляем нашу правую панель
 
         var originalTint = CategoryStyle.Tint(product.Category);
         var translucentTint = Color.FromRgba(originalTint.Red, originalTint.Green, originalTint.Blue, 0.45f);
