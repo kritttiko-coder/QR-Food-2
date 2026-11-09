@@ -58,7 +58,7 @@ public class MainPage : ContentPage
     {
         var title = new Label
         {
-            Text = "Мои продукты",
+            Text = Loc.T("MyProducts"),
             FontSize = 28,
             FontAttributes = FontAttributes.Bold,
             VerticalOptions = LayoutOptions.Center
@@ -396,7 +396,7 @@ public class MainPage : ContentPage
                 (p.Barcode ?? "").Contains(query, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        countLabel.Text = $"Ваш холодильник • {all.Count} продуктов";
+        countLabel.Text = $"{Loc.T("FridgeCount")} • {all.Count} {Loc.T("ProductsCount")}";
 
         if (filtered.Count == 0)
         {
