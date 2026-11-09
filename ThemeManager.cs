@@ -104,10 +104,15 @@ public static class ThemeManager
     }
 
     public static void SetIcon(string value)
-    {
-        CurrentIcon = value;
-        Apply();
-    }
+{
+    CurrentIcon = value;
+    Apply();
+
+#if ANDROID
+    
+    Platforms.Android.IconSwitcher.Apply(value);
+#endif
+}
 
     // Используй эти методы для цветов элементов на страницах.
     public static void BindPage(ContentPage page)
