@@ -133,6 +133,16 @@ public class LocalizationManager : INotifyPropertyChanged
         "CatVeg" => "Овощи и фрукты",
         "CatFreezer" => "Заморозка",
         "CatOther" => "Другое",
+        
+        // Инфо (InfoPage)
+"ExpiryColorsTitle" => "Цвета сроков годности",
+"Exp0_3" => "0–3 дня",
+"Exp4_7" => "4–7 дней",
+"Exp8_14" => "8–14 дней",
+"Exp15_21" => "15–21 день",
+"Exp22Plus" => "22+ дня",
+"CategoryBackgrounds" => "Фоны категорий:",
+"ColorWarning" => "Цвет — визуальная подсказка, а не оценка безопасности пищи.",
 
         // Поддержка
         "SupportAuthor" => "Поддержать разработчика",
@@ -221,6 +231,16 @@ public class LocalizationManager : INotifyPropertyChanged
         "CatVeg" => "Vegetables & Fruits",
         "CatFreezer" => "Frozen",
         "CatOther" => "Other",
+
+        // info (InfoPage)
+"ExpiryColorsTitle" => "Expiry Date Colors",
+"Exp0_3" => "0–3 days",
+"Exp4_7" => "4–7 days",
+"Exp8_14" => "8–14 days",
+"Exp15_21" => "15–21 days",
+"Exp22Plus" => "22+ days",
+"CategoryBackgrounds" => "Category backgrounds:",
+"ColorWarning" => "Color is a visual hint, not a food safety assessment.",
 
         // Support
         "SupportAuthor" => "Support the developer",
