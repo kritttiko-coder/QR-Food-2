@@ -8,18 +8,18 @@ public class InfoPage : ContentPage
 {
     public InfoPage()
     {
-        Title = "Инфо";
+        // Переводим заголовок вкладки (в словаре это "Информация")
+        Title = Loc.T("Info");
         ThemeManager.BindPage(this);
 
         var title = new Label
         {
-            Text = "Цвета сроков годности",
+            Text = Loc.T("ExpiryColorsTitle"),
             FontSize = 26,
             FontAttributes = FontAttributes.Bold
         };
         ThemeManager.BindText(title);
 
-        
         var content = new VerticalStackLayout
         {
             Padding = 22,
@@ -27,36 +27,36 @@ public class InfoPage : ContentPage
             Children = { title }
         };
 
-        // Сроки годности
-        AddColorBlock(content, "Просрочен", "#B00035");
-        AddColorBlock(content, "0–3 дня", "#FF414D");
-        AddColorBlock(content, "4–7 дней", "#FF962E");
-        AddColorBlock(content, "8–14 дней", "#FF962E");
-        AddColorBlock(content, "15–21 день", "#E8C928");
-        AddColorBlock(content, "22+ дня", "#39C879");
+        // Сроки годности (берем ключи из словаря)
+        AddColorBlock(content, Loc.T("Expired"), "#B00035");
+        AddColorBlock(content, Loc.T("Exp0_3"), "#FF414D");
+        AddColorBlock(content, Loc.T("Exp4_7"), "#FF962E");
+        AddColorBlock(content, Loc.T("Exp8_14"), "#FF962E");
+        AddColorBlock(content, Loc.T("Exp15_21"), "#E8C928");
+        AddColorBlock(content, Loc.T("Exp22Plus"), "#39C879");
 
         // Описание фонов категорий
         var desc = new Label
         {
-            Text = "Фоны категорий:",
+            Text = Loc.T("CategoryBackgrounds"),
             Margin = new Thickness(0, 10, 0, 0),
             FontAttributes = FontAttributes.Bold
         };
         ThemeManager.BindText(desc, secondary: true);
         content.Children.Add(desc);
 
+        // Категории (используем уже существующие ключи "Cat...")
+        AddColorBlock(content, Loc.T("CatDairy"), "#B3FFFFFF");
+        AddColorBlock(content, Loc.T("CatDrinks"), "#B3E0F7FA");
+        AddColorBlock(content, Loc.T("CatMeat"), "#B3FFEBEE");
+        AddColorBlock(content, Loc.T("CatVeg"), "#B3E8F5E9");
+        AddColorBlock(content, Loc.T("CatFreezer"), "#B3E3F2FD");
+        AddColorBlock(content, Loc.T("CatOther"), "#B3F3E5F5");
         
-        // 70%
-AddColorBlock(content, "Молочные",     "#B3FFFFFF");
-AddColorBlock(content, "Напитки",      "#B3E0F7FA");
-AddColorBlock(content, "Мясо/рыба",    "#B3FFEBEE");
-AddColorBlock(content, "Овощи/фрукты", "#B3E8F5E9");
-AddColorBlock(content, "Заморозка",    "#B3E3F2FD");
-AddColorBlock(content, "Прочие",       "#B3F3E5F5");
-        
+        // Предупреждение
         var warning = new Label
         {
-            Text = "Цвет — визуальная подсказка, а не оценка безопасности пищи.",
+            Text = Loc.T("ColorWarning"),
             TextColor = Color.FromArgb("#FFB65C"),
             Margin = new Thickness(0, 10, 0, 0)
         };
