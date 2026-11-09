@@ -55,11 +55,11 @@ public class InfoPage : ContentPage
         ThemeManager.Apply();
     }
 
-    private void AddColorBlock(VerticalStackLayout s, string text, string colorHex)
+    private void AddColorBlock(VerticalStackLayout s, string text, Color color)
     {
         s.Children.Add(new Border
         {
-            BackgroundColor = Color.FromArgb(colorHex),
+            BackgroundColor = color,
             StrokeThickness = 0,
             StrokeShape = new RoundRectangle { CornerRadius = 20 },
             Padding = 10,
