@@ -185,6 +185,7 @@ public class MainPage : ContentPage
 }
 
 private Border CreateIconButtonWithImage(Image img)
+{   
     {
         var border = new Border
         {
@@ -434,3 +435,4 @@ private Border CreateIconButtonWithImage(Image img)
 
         return border;
     }
+}
