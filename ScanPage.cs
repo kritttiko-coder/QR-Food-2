@@ -22,6 +22,7 @@ public class ScanPage : ContentPage
     private VerticalStackLayout _photoPrompt = null!;
     private VerticalStackLayout _loadingView = null!;
     private ScrollView _confirmView = null!;
+    private Label _scannerStatus = null!; // Для отладки сканера
 
     private string? _gtin, _serial, _fullCode;
     private byte[]? _expiryPhoto;
@@ -43,8 +44,24 @@ public class ScanPage : ContentPage
 
     private void BuildUI()
     {
-        _scanner = new CameraBarcodeReaderView { IsDetecting = false };
+        _scanner = new CameraBarcodeReaderView 
+        { 
+            IsDetecting = false,
+            IsVisible = true 
+        };
         _scanner.BarcodesDetected += OnBarcodeDetected;
+
+        // Текст поверх камеры (чтобы видеть, ловит ли она что-то)
+        _scannerStatus = new Label 
+        { 
+            Text = "Наведите на код Честного ЗНАКа (DataMatrix)", 
+            TextColor = Colors.White, 
+            BackgroundColor = Color.FromRgba(0,0,0,0.6),
+            Padding = 10,
+            HorizontalTextAlignment = TextAlignment.Center,
+            VerticalOptions = LayoutOptions.Start,
+            Margin = new Thickness(20, 50, 20, 0)
+        };
 
         _photoPrompt = BuildPhotoPrompt();
         _loadingView = BuildLoadingView();
@@ -52,17 +69,14 @@ public class ScanPage : ContentPage
 
         var overlay = new Grid();
         overlay.Add(_scanner);
+        overlay.Add(_scannerStatus);
         overlay.Add(_photoPrompt);
         overlay.Add(_loadingView);
         overlay.Add(_confirmView);
 
         var mainGrid = new Grid
         {
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Star),
-                new RowDefinition(GridLength.Auto)
-            }
+            RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) }
         };
         mainGrid.Add(overlay, 0, 0);
         mainGrid.Add(new BottomNavBar(0, _repo), 0, 1);
@@ -81,30 +95,45 @@ public class ScanPage : ContentPage
             await Navigation.PopAsync();
             return;
         }
-        if (_phase == ScanPhase.AwaitingCode) _scanner.IsDetecting = true;
+        
+        _phase = ScanPhase.AwaitingCode;
+        UpdateVisibility();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _scanner.IsDetecting = false;
+        _scanner.IsDetecting = false; 
     }
 
     private void OnBarcodeDetected(object? sender, BarcodeDetectionEventArgs e)
     {
         if (_phase != ScanPhase.AwaitingCode) return;
+        
+        // 1. Ищем строго DataMatrix (Честный ЗНАК)
         var hit = e.Results.FirstOrDefault(r => r.Format == BarcodeFormat.DataMatrix);
         if (hit == null) return;
 
+        // 2. Пытаемся распарсить его через наш сервис (01-GTIN, 21-Serial)
         var parsed = _dm.TryParse(hit.Value);
-        if (parsed == null) return;
+        if (parsed == null) 
+        {
+            // Если это DataMatrix, но не ЧЗ, показываем это на экране
+            MainThread.BeginInvokeOnMainThread(() => 
+                _scannerStatus.Text = $"Найден DataMatrix, но не ЧЗ: {hit.Value[..Math.Min(15, hit.Value.Length)]}...");
+            return;
+        }
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
             _gtin = parsed.Value.Gtin;
             _serial = parsed.Value.Serial;
             _fullCode = parsed.Value.FullCode;
+
+            _scannerStatus.Text = $"Успех! GTIN: {_gtin}";
             _scanner.IsDetecting = false;
+            
+            // Переходим к фото
             _phase = ScanPhase.AwaitingPhoto;
             UpdateVisibility();
         });
@@ -134,7 +163,7 @@ public class ScanPage : ContentPage
             if (_expiryPhoto != null)
                 expiry = await _ocr.ReadFromPhotoAsync(_expiryPhoto);
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"OCR Error: {ex.Message}"); }
 
         ProductInfo? info = null;
         if (!string.IsNullOrEmpty(_gtin))
@@ -154,19 +183,14 @@ public class ScanPage : ContentPage
             Serial = _serial,
             ExpiryDate = expiry ?? DateTime.Today.AddDays(7),
             RemoteImageUrl = info?.ImageUrl,
-            LocalImagePath = localPath,
-            SourcesCsv = string.Join(",", new[]
-            {
-                info != null ? "OFF" : null,
-                expiry != null ? "OCR" : null
-            }.Where(x => x != null))
+            LocalImagePath = localPath
         };
 
         _nameEntry.Text = _current.Name;
         _brandEntry.Text = _current.Brand;
         _volumeEntry.Text = _current.Volume;
         _datePicker.Date = _current.ExpiryDate;
-        _gtinLabel.Text = $"GTIN: {_gtin}";
+        _gtinLabel.Text = $"GTIN: {_gtin}\nSerial: {_serial}";
 
         if (_current.HasLocalImage)
         {
@@ -199,30 +223,33 @@ public class ScanPage : ContentPage
     private void UpdateVisibility()
     {
         _scanner.IsVisible = _phase == ScanPhase.AwaitingCode;
+        _scannerStatus.IsVisible = _phase == ScanPhase.AwaitingCode;
         _photoPrompt.IsVisible = _phase == ScanPhase.AwaitingPhoto;
         _loadingView.IsVisible = _phase == ScanPhase.Processing;
         _confirmView.IsVisible = _phase == ScanPhase.Confirming;
-        if (_phase == ScanPhase.AwaitingCode) _scanner.IsDetecting = true;
+        
+        if (_phase == ScanPhase.AwaitingCode) 
+        {
+            _scannerStatus.Text = "Наведите на код Честного ЗНАКа (DataMatrix)";
+            _scanner.IsDetecting = true;
+        }
     }
 
     // --- UI ---
-
     private VerticalStackLayout BuildPhotoPrompt()
     {
-        var title = new Label { Text = "Код распознан!", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
-        var subtitle = new Label { Text = "Сфотографируйте срок годности на упаковке", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+        var title = new Label { Text = "Код ЧЗ распознан!", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+        var subtitle = new Label { Text = "Сфотографируйте срок годности", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
 
-        var btn = new Button { Text = "📷 Сфотографировать срок", CornerRadius = 14, HeightRequest = 56, HorizontalOptions = LayoutOptions.Fill, Margin = new Thickness(0, 16, 0, 0) };
+        var btn = new Button { Text = "📷 Сфотографировать дату", CornerRadius = 14, HeightRequest = 56, HorizontalOptions = LayoutOptions.Fill, Margin = new Thickness(0, 16, 0, 0) };
         btn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
         btn.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
         btn.Clicked += OnTakeExpiryPhoto;
 
         return new VerticalStackLayout
         {
-            Spacing = 12,
-            Padding = 24,
-            VerticalOptions = LayoutOptions.Center,
-            HorizontalOptions = LayoutOptions.Center,
+            Spacing = 12, Padding = 24,
+            VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
             BackgroundColor = Color.FromRgba(0, 0, 0, 0.7),
             Children = { title, subtitle, btn }
         };
@@ -232,15 +259,13 @@ public class ScanPage : ContentPage
     {
         return new VerticalStackLayout
         {
-            Spacing = 16,
-            Padding = 24,
-            VerticalOptions = LayoutOptions.Center,
-            HorizontalOptions = LayoutOptions.Center,
+            Spacing = 16, Padding = 24,
+            VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
             BackgroundColor = Color.FromRgba(0, 0, 0, 0.85),
             Children =
             {
                 new ActivityIndicator { IsRunning = true, Color = ThemeManager.AccentColor, HeightRequest = 48, WidthRequest = 48 },
-                new Label { Text = "Распознаём срок и подтягиваем данные…", FontSize = 15, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center }
+                new Label { Text = "Распознаём срок и ищем в базе…", FontSize = 15, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center }
             }
         };
     }
@@ -261,33 +286,24 @@ public class ScanPage : ContentPage
         _gtinLabel = new Label { FontSize = 12 };
         ThemeManager.BindText(_gtinLabel, secondary: true);
 
-        _nameEntry = CreateEntry(Loc.T("Name"));
-        _brandEntry = CreateEntry(Loc.T("Brand"));
-        _volumeEntry = CreateEntry(Loc.T("Volume"));
+        _nameEntry = CreateEntry("Название");
+        _brandEntry = CreateEntry("Бренд");
+        _volumeEntry = CreateEntry("Объём (0.5 л)");
 
-        _categoryPicker = new Picker { Title = Loc.T("Category") };
-        _categoryPicker.ItemsSource = new List<string>
-        {
-            Loc.T("CatDairy"), Loc.T("CatDrinks"), Loc.T("CatMeat"),
-            Loc.T("CatVeg"), Loc.T("CatFreezer"), Loc.T("CatOther")
-        };
+        _categoryPicker = new Picker { Title = "Категория" };
+        _categoryPicker.ItemsSource = new List<string> { "Молочные", "Напитки", "Мясо и рыба", "Овощи и фрукты", "Заморозка", "Другое" };
         _categoryPicker.SelectedIndex = 5;
 
         _datePicker = new DatePicker { Date = DateTime.Today.AddDays(7) };
 
-        var saveBtn = new Button { Text = Loc.T("Save"), CornerRadius = 14, HeightRequest = 56, Margin = new Thickness(0, 8, 0, 0) };
+        var saveBtn = new Button { Text = "Сохранить", CornerRadius = 14, HeightRequest = 56, Margin = new Thickness(0, 8, 0, 0) };
         saveBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
         saveBtn.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
         saveBtn.Clicked += OnSave;
 
         return new ScrollView
         {
-            Content = new VerticalStackLayout
-            {
-                Padding = 18,
-                Spacing = 10,
-                Children = { photoBorder, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn }
-            }
+            Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } }
         };
     }
 
