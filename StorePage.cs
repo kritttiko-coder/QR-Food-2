@@ -18,11 +18,11 @@ public class StorePage : ContentPage
 
         // Свайпы
         var swipeLeft = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo); // Влево -> Аккаунт
+        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo); // Влево -> Главная
         grid.GestureRecognizers.Add(swipeLeft);
 
         var swipeRight = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo); // Вправо -> Главная
+        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo); // Вправо -> Аккаунт
         grid.GestureRecognizers.Add(swipeRight);
 
         Content = grid;
