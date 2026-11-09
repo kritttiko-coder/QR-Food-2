@@ -5,7 +5,6 @@ namespace FoodExpiryApp.Platforms.Android;
 
 public static class IconSwitcher
 {
-    // id из CustomizationPage → имя activity-alias из AndroidManifest.xml
     static readonly Dictionary<string, string> Aliases = new()
     {
         ["classic"]   = "LauncherClassic",
@@ -27,7 +26,7 @@ public static class IconSwitcher
         if (!Aliases.TryGetValue(iconId, out var target))
             target = Aliases["classic"];
 
-        // 1) Сначала включаем выбранный — лаунчер не должен остаться без точки входа
+        // 1) Сначала включаем выбранный
         SetState(pm, pkg!, target, ComponentEnabledState.Enabled);
 
         // 2) Затем гасим остальные
@@ -36,19 +35,13 @@ public static class IconSwitcher
             if (name == target) continue;
             SetState(pm, pkg!, name, ComponentEnabledState.Disabled);
         }
-        // Отправляем широковещательный интент, чтобы лаунчер обновил иконки
-var intent = new global::Android.Content.Intent(global::Android.Content.Intent.ActionMain);
-intent.AddCategory(global::Android.Content.Intent.CategoryLauncher);
-// Это не запустит приложение, просто обновит меню
     }
 
-    static void SetState(
-        PackageManager pm, string pkg, string alias, ComponentEnabledState state)
+    static void SetState(PackageManager pm, string pkg, string alias, ComponentEnabledState state)
     {
         try
         {
             var component = new ComponentName(pkg, $"{pkg}.{alias}");
-            // ✅ 3-й аргумент — ComponentEnableOption, а не ComponentEnabledState
             pm.SetComponentEnabledSetting(
                 component,
                 state,
