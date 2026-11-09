@@ -98,11 +98,11 @@ public class SplashPage : ContentPage
     {
         return icon switch
         {
-            "winter" => "appicon_winter_food_qr.png",
-            "halloween" => "appicon_halloween_food_qr.png",
-            "mono" => "appicon_monochrome_food_qr.png",
-            "neon" => "appicon_neon_food_qr.png",
-            _ => "appicon_classic_food_qr.png"
+            "winter" => "appicon_winter.png",
+            "halloween" => "appicon_halloween.png",
+            "mono" => "appicon_mono.png",
+            "neon" => "appicon_neon.png",
+            _ => "appicon_classic.png"
         };
     }
 
