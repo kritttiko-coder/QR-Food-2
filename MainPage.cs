@@ -283,7 +283,7 @@ public class MainPage : ContentPage
         var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 20, HeightRequest = 20 };
         deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") });
         // ✅ Мусорка с отступом справа (ближе к центру) и по центру по вертикали
-        var deleteButton = new Border { Content = deleteImg, Padding = 4, BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(0, 0, 15, 0) };
+        var deleteButton = new Border { Content = deleteImg, Padding = 8, BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(0, 0, 15, 0) };
         deleteButton.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () =>
