@@ -23,13 +23,15 @@ public sealed class ExpiryOcrService
     private static IOcrService? _ocr;
 
     public async Task<DateTime?> ReadFromPhotoAsync(byte[] imageBytes, CancellationToken ct = default)
-    {
-        _ocr ??= Ioc.Default.GetService<IOcrService>();
-        if (_ocr == null) return null;
-        await _ocr.InitAsync();
-        var result = await _ocr.RecognizeTextAsync(imageBytes, ct: ct);
-        if (string.IsNullOrWhiteSpace(result?.AllText)) return null;
-        return PickExpiryDate(result.AllText);
+{
+    
+    _ocr ??= IPlatformApplication.Current?.Services.GetService<IOcrService>();
+    
+    if (_ocr == null) return null;
+    await _ocr.InitAsync();
+    var result = await _ocr.RecognizeTextAsync(imageBytes, ct: ct);
+    if (string.IsNullOrWhiteSpace(result?.AllText)) return null;
+    return PickExpiryDate(result.AllText);
     }
 
     private static DateTime? PickExpiryDate(string text)
