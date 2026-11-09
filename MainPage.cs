@@ -434,4 +434,3 @@ private Border CreateIconButtonWithImage(Image img)
 
         return border;
     }
-}
