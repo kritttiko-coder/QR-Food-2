@@ -14,7 +14,6 @@ public class SettingsPage : ContentPage
 
         var heading = new Label { Text = Loc.T("Settings"), FontSize = 28, FontAttributes = FontAttributes.Bold };
         ThemeManager.BindText(heading);
-
         var subtitle = new Label { Text = Loc.T("Personalize"), FontSize = 13 };
         ThemeManager.BindText(subtitle, secondary: true);
 
@@ -36,40 +35,25 @@ public class SettingsPage : ContentPage
         var help = CreateMenuButton("icon_help.png", Loc.T("Help"), Loc.T("HelpDesc"));
         help.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new HelpPage())) });
 
-        var version = new Label
-        {
-            Text = $"FoodExpiryApp · {Loc.T("Version")}",
-            FontSize = 12,
-            HorizontalOptions = LayoutOptions.Center,
-            Margin = new Thickness(0, 8, 0, 0)
-        };
+        var version = new Label { Text = $"FoodExpiryApp · {Loc.T("Version")}", FontSize = 12, HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 8, 0, 0) };
         ThemeManager.BindText(version, secondary: true);
 
-        var scrollContent = new ScrollView
-        {
-            Content = new VerticalStackLayout
-            {
-                Padding = 22,
-                Spacing = 14,
-                Children = { heading, subtitle, langButton, appearance, dateTime, info, donation, help, version }
-            }
-        };
+        var scrollContent = new ScrollView { Content = new VerticalStackLayout { Padding = 22, Spacing = 14, Children = { heading, subtitle, langButton, appearance, dateTime, info, donation, help, version } } };
 
-        // --- СОБИРАЕМ СТРАНИЦУ: КОНТЕНТ СВЕРХУ, НАВИГАЦИЯ СНИЗУ ---
-        var mainGrid = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition(GridLength.Star),
-                new RowDefinition(GridLength.Auto)
-            }
-        };
-
+        var mainGrid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
         mainGrid.Add(scrollContent, 0, 0);
-        mainGrid.Add(new BottomNavBar(3, repo), 0, 1); // 3 = индекс вкладки "Настройки"
+        mainGrid.Add(new BottomNavBar(3, repo), 0, 1);
+
+        // СВАЙПЫ НА ВСЮ СТРАНИЦУ (Влево - на Главную)
+        var swipeLeft = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
+        mainGrid.GestureRecognizers.Add(swipeLeft);
+
+        var swipeRight = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo);
+        mainGrid.GestureRecognizers.Add(swipeRight);
 
         Content = mainGrid;
-        
         ThemeManager.Apply();
     }
 
@@ -80,19 +64,12 @@ public class SettingsPage : ContentPage
 
         var titleLabel = new Label { Text = title, FontSize = 16, FontAttributes = FontAttributes.Bold };
         ThemeManager.BindText(titleLabel);
-
         var descLabel = new Label { Text = description, FontSize = 12 };
         ThemeManager.BindText(descLabel, secondary: true);
 
         var textStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center, Children = { titleLabel, descLabel } };
-
-        var grid = new Grid
-        {
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) },
-            ColumnSpacing = 16, Padding = new Thickness(16, 12)
-        };
-        grid.Add(icon, 0, 0);
-        grid.Add(textStack, 1, 0);
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 16, Padding = new Thickness(16, 12) };
+        grid.Add(icon, 0, 0); grid.Add(textStack, 1, 0);
 
         var border = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = grid };
         border.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
