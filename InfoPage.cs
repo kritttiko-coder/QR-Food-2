@@ -69,6 +69,13 @@ public class InfoPage : ContentPage
                 TextColor = Colors.Black,
                 FontAttributes = FontAttributes.Bold
             }
-        });
+        });    
     }
+
+  private Color GetTint(string category)
+   {
+    var c = CategoryStyle.Tint(category);
+    return Color.FromRgba(c.Red, c.Green, c.Blue, 0.45f);
+   }  
+   
 }
