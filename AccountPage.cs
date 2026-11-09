@@ -18,11 +18,11 @@ public class AccountPage : ContentPage
 
         // Свайпы
         var swipeLeft = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo); // Влево -> Настройки
+        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, repo); // Влево -> Настройки
         grid.GestureRecognizers.Add(swipeLeft);
 
         var swipeRight = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, repo); // Вправо -> Магазин
+        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo); // Вправо -> Магазин
         grid.GestureRecognizers.Add(swipeRight);
 
         Content = grid;
