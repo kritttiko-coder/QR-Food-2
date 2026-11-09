@@ -1,5 +1,7 @@
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
+using ZXing.Net.Maui; // <-- ДОБАВИТЬ ВОТ ЭТО
+using ZXing.Net.Maui.Controls;
 
 namespace FoodExpiryApp;
 
