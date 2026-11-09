@@ -59,7 +59,7 @@ public class MainPage : ContentPage
     Command = new Command(async () => await Navigation.PushAsync(new ScanPage(repo)))
 });
 
-        var addButton = CreateActionButton("icon_plus.png", Loc.T("Add"), ThemeManager.SurfaceAlt, (Color)Application.Current!.Resources[ThemeManager.Text]);
+        var addButton = CreateActionButton("icon_plus.png", Loc.T("Add"), (Color)Application.Current!.Resources[ThemeManager.SurfaceAlt], (Color)Application.Current!.Resources[ThemeManager.Text]);
         addButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new ProductEditPage(repo))) });
 
         var actions = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 12 };
