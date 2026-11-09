@@ -54,7 +54,10 @@ public class MainPage : ContentPage
         search.TextChanged += (_, _) => Render();
 
         var scanButton = CreateActionButton("icon_qr.png", Loc.T("Scan"), ThemeManager.AccentColor, Colors.White);
-        scanButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await DisplayAlert(Loc.T("Scan"), "Сканер ещё не подключён.", "OK")) });
+        scanButton.GestureRecognizers.Add(new TapGestureRecognizer
+{
+    Command = new Command(async () => await Navigation.PushAsync(new ScanPage(repo)))
+});
 
         var addButton = CreateActionButton("icon_plus.png", Loc.T("Add"), ThemeManager.SurfaceAlt, (Color)Application.Current!.Resources[ThemeManager.Text]);
         addButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new ProductEditPage(repo))) });
