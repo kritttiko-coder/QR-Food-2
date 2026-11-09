@@ -17,16 +17,16 @@ public class ScanPage : ContentPage
     private readonly OpenFoodFactsClient _off = new();
 
     private ScanPhase _phase = ScanPhase.AwaitingCode;
+    private string? _gtin, _serial, _fullCode;
+    private byte[]? _expiryPhoto;
+    private Product _current = new();
 
     private CameraBarcodeReaderView _scanner = null!;
     private VerticalStackLayout _photoPrompt = null!;
     private VerticalStackLayout _loadingView = null!;
     private ScrollView _confirmView = null!;
-    private Label _scannerStatus = null!; // Для отладки сканера
+    private Label _scannerStatus = null!;
 
-    private string? _gtin, _serial, _fullCode;
-    private byte[]? _expiryPhoto;
-    private Product _current = new();
     private Image _productImage = null!;
     private Label _noPhotoLabel = null!;
     private Entry _nameEntry = null!, _brandEntry = null!, _volumeEntry = null!;
@@ -44,20 +44,28 @@ public class ScanPage : ContentPage
 
     private void BuildUI()
     {
+        // ВКЛЮЧАЕМ РЕЖИМ TryHarder И ПОДДЕРЖКУ ВСЕХ КОДОВ
         _scanner = new CameraBarcodeReaderView 
         { 
             IsDetecting = false,
-            IsVisible = true 
+            IsVisible = true,
+            Options = new BarcodeReaderOptions
+            {
+                Formats = BarcodeFormat.DataMatrix | BarcodeFormat.QrCode | BarcodeFormat.Ean13,
+                AutoRotate = true,
+                Multiple = false,
+                TryHarder = true // Важно для DataMatrix!
+            }
         };
         _scanner.BarcodesDetected += OnBarcodeDetected;
 
-        // Текст поверх камеры (чтобы видеть, ловит ли она что-то)
         _scannerStatus = new Label 
         { 
             Text = "Наведите на код Честного ЗНАКа (DataMatrix)", 
             TextColor = Colors.White, 
-            BackgroundColor = Color.FromRgba(0,0,0,0.6),
+            BackgroundColor = Color.FromRgba(0,0,0,0.7),
             Padding = 10,
+            FontSize = 14,
             HorizontalTextAlignment = TextAlignment.Center,
             VerticalOptions = LayoutOptions.Start,
             Margin = new Thickness(20, 50, 20, 0)
@@ -95,7 +103,6 @@ public class ScanPage : ContentPage
             await Navigation.PopAsync();
             return;
         }
-        
         _phase = ScanPhase.AwaitingCode;
         UpdateVisibility();
     }
@@ -109,34 +116,46 @@ public class ScanPage : ContentPage
     private void OnBarcodeDetected(object? sender, BarcodeDetectionEventArgs e)
     {
         if (_phase != ScanPhase.AwaitingCode) return;
-        
-        // 1. Ищем строго DataMatrix (Честный ЗНАК)
-        var hit = e.Results.FirstOrDefault(r => r.Format == BarcodeFormat.DataMatrix);
-        if (hit == null) return;
 
-        // 2. Пытаемся распарсить его через наш сервис (01-GTIN, 21-Serial)
-        var parsed = _dm.TryParse(hit.Value);
-        if (parsed == null) 
-        {
-            // Если это DataMatrix, но не ЧЗ, показываем это на экране
-            MainThread.BeginInvokeOnMainThread(() => 
-                _scannerStatus.Text = $"Найден DataMatrix, но не ЧЗ: {hit.Value[..Math.Min(15, hit.Value.Length)]}...");
-            return;
-        }
+        // Берем первый попавшийся код, чтобы показать пользователю, что камера ВООБЩЕ что-то видит
+        var hit = e.Results.FirstOrDefault();
+        if (hit == null) return;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            _gtin = parsed.Value.Gtin;
-            _serial = parsed.Value.Serial;
-            _fullCode = parsed.Value.FullCode;
+            // Показываем, что нашли (для отладки)
+            var text = hit.Value.Length > 20 ? hit.Value.Substring(0, 20) + "..." : hit.Value;
+            _scannerStatus.Text = $"Найден {hit.Format}:\n{text}";
 
-            _scannerStatus.Text = $"Успех! GTIN: {_gtin}";
-            _scanner.IsDetecting = false;
-            
-            // Переходим к фото
-            _phase = ScanPhase.AwaitingPhoto;
-            UpdateVisibility();
+            // Пытаемся распарсить как ЧЗ
+            var parsed = _dm.TryParse(hit.Value);
+            if (parsed != null)
+            {
+                _gtin = parsed.Value.Gtin;
+                _serial = parsed.Value.Serial;
+                _fullCode = parsed.Value.FullCode;
+
+                _scannerStatus.Text = $"Код ЧЗ распознан!\nGTIN: {_gtin}";
+                _scanner.IsDetecting = false;
+                
+                // Задержка 1 сек, чтобы пользователь увидел успех
+                Task.Delay(1000).ContinueWith(_ => 
+                {
+                    MainThread.BeginInvokeOnMainThread(() => 
+                    {
+                        _phase = ScanPhase.AwaitingPhoto;
+                        UpdateVisibility();
+                    });
+                });
+            }
         });
+    }
+
+    private void OnSkipCode(object? s, EventArgs e)
+    {
+        _scanner.IsDetecting = false;
+        _phase = ScanPhase.AwaitingPhoto;
+        UpdateVisibility();
     }
 
     private async void OnTakeExpiryPhoto(object? s, EventArgs e)
@@ -235,11 +254,10 @@ public class ScanPage : ContentPage
         }
     }
 
-    // --- UI ---
     private VerticalStackLayout BuildPhotoPrompt()
     {
-        var title = new Label { Text = "Код ЧЗ распознан!", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
-        var subtitle = new Label { Text = "Сфотографируйте срок годности", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+        var title = new Label { Text = "Код распознан (или пропущен)", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+        var subtitle = new Label { Text = "Сфотографируйте срок годности (желательно крупно)", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
 
         var btn = new Button { Text = "📷 Сфотографировать дату", CornerRadius = 14, HeightRequest = 56, HorizontalOptions = LayoutOptions.Fill, Margin = new Thickness(0, 16, 0, 0) };
         btn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
@@ -250,7 +268,7 @@ public class ScanPage : ContentPage
         {
             Spacing = 12, Padding = 24,
             VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.7),
+            BackgroundColor = Color.FromRgba(0, 0, 0, 0.8),
             Children = { title, subtitle, btn }
         };
     }
@@ -265,7 +283,7 @@ public class ScanPage : ContentPage
             Children =
             {
                 new ActivityIndicator { IsRunning = true, Color = ThemeManager.AccentColor, HeightRequest = 48, WidthRequest = 48 },
-                new Label { Text = "Распознаём срок и ищем в базе…", FontSize = 15, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center }
+                new Label { Text = "Ищем дату на фото...", FontSize = 15, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center }
             }
         };
     }
