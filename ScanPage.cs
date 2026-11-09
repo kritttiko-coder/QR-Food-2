@@ -90,7 +90,7 @@ public class ScanPage : ContentPage
         _scanner.IsDetecting = false;
     }
 
-    private void OnBarcodeDetected(object sender, BarcodeDetectionEventArgs e)
+    private void OnBarcodeDetected(object? sender, BarcodeDetectionEventArgs e)
     {
         if (_phase != ScanPhase.AwaitingCode) return;
         var hit = e.Results.FirstOrDefault(r => r.Format == BarcodeFormat.DataMatrix);
