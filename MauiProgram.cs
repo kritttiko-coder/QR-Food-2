@@ -1,6 +1,6 @@
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-using ZXing.Net.Maui; // <-- ДОБАВИТЬ ВОТ ЭТО
+using ZXing.Net.Maui;
 using ZXing.Net.Maui.Controls;
 using Plugin.Maui.OCR;
 
@@ -12,11 +12,19 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
 
+        // 1. Настраиваем сам MAUI и подключаем библиотеки (цепочка Use...)
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()         
-            .UseBarcodeReader() // <--- Для сканера
-            .UseOcr();          // <--- Для распознавания текста
+            .UseBarcodeReader()
+            .UseOcr();
+
+        // 2. Регистрируем наши сервисы (отдельные команды)
+        builder.Services.AddSingleton<Services.ProductImageService>();
+        // Сюда же потом добавим другие сервисы, если понадобятся:
+        // builder.Services.AddSingleton<Services.DataMatrixCaptureService>();
+        // builder.Services.AddSingleton<Services.ExpiryOcrService>();
+        // builder.Services.AddSingleton<Services.OpenFoodFactsClient>();
 
 #if DEBUG
         builder.Logging.AddDebug();
