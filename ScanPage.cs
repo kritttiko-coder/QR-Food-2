@@ -347,7 +347,7 @@ captureBtn.Clicked += async (_, _) =>
 {
     Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, captureBtn, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } }
 };
-        
+ }       
     private Entry CreateEntry(string placeholder)
     {
         var e = new Entry { Placeholder = placeholder, HeightRequest = 50 };
