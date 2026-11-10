@@ -1,4 +1,7 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Graphics;
+using CommunityToolkit.Maui.Behaviors;
 
 namespace FoodExpiryApp;
 
@@ -6,25 +9,119 @@ public class AccountPage : ContentPage
 {
     public AccountPage(ProductRepository repo)
     {
-        Title = "Аккаунт";
+        Title = Loc.T("Account");
         ThemeManager.BindPage(this);
 
-        var title = new Label { Text = "Аккаунт", FontSize = 28, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-        ThemeManager.BindText(title);
+        var content = new VerticalStackLayout { Padding = 16, Spacing = 16 };
 
-        var grid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
-        grid.Add(title, 0, 0);
-        grid.Add(new BottomNavBar(2, repo), 0, 1);
+        // Шапка
+        var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
+        var title = new Label { Text = Loc.T("Account"), FontSize = 28, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(title);
+        var gear = new Image { Source = "icon_gear.png", WidthRequest = 24, HeightRequest = 24 };
+        gear.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        gear.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new SettingsPage(repo))) });
+        header.Add(title, 0, 0); header.Add(gear, 1, 0);
+        content.Children.Add(header);
+
+        // Профиль
+        var profileBorder = CreateCard();
+        var profileGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 12 };
+        var avatar = new Border { WidthRequest = 60, HeightRequest = 60, StrokeShape = new RoundRectangle { CornerRadius = 30 }, Stroke = ThemeManager.AccentColor, StrokeThickness = 2, BackgroundColor = Color.FromArgb("#2A2A35"), Content = new Label { Text = "👤", FontSize = 30, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
+        var nameStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+        var uName = new Label { Text = "Andry", FontSize = 18, FontAttributes = FontAttributes.Bold };
+        var uRole = new Label { Text = Loc.T("UserRole"), FontSize = 12, TextColor = Colors.Gray };
+        ThemeManager.BindText(uName);
+        nameStack.Children.Add(uName); nameStack.Children.Add(uRole);
+        var pChevron = new Label { Text = ">", FontSize = 18, TextColor = Colors.Gray, VerticalOptions = LayoutOptions.Center };
+        profileGrid.Add(avatar, 0, 0); profileGrid.Add(nameStack, 1, 0); profileGrid.Add(pChevron, 2, 0);
+        profileBorder.Content = profileGrid;
+        content.Children.Add(profileBorder);
+
+        // Синхронизация
+        var syncBorder = CreateCard();
+        var syncGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 12 };
+        var syncIcon = new Image { Source = "icon_sync.png", WidthRequest = 24, HeightRequest = 24 };
+        syncIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var syncStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+        var sTitle = new Label { Text = Loc.T("Sync"), FontSize = 14, FontAttributes = FontAttributes.Bold };
+        var sDesc = new Label { Text = Loc.T("LastSync"), FontSize = 11, TextColor = Colors.Gray };
+        ThemeManager.BindText(sTitle);
+        syncStack.Children.Add(sTitle); syncStack.Children.Add(sDesc);
+        var check = new Label { Text = "✔", TextColor = Color.FromArgb("#55A630"), FontSize = 20, VerticalOptions = LayoutOptions.Center };
+        syncGrid.Add(syncIcon, 0, 0); syncGrid.Add(syncStack, 1, 0); syncGrid.Add(check, 2, 0);
+        syncBorder.Content = syncGrid;
+        content.Children.Add(syncBorder);
+
+        // Профиль Секция
+        content.Children.Add(new Label { Text = Loc.T("Profile"), FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 10, 0, 0) });
+        var profileList = new VerticalStackLayout { Spacing = 1 };
+        profileList.Children.Add(CreateListItem("icon_account.png", Loc.T("ChangeName"), "Andry"));
+        profileList.Children.Add(CreateListItem("icon_brush.png", Loc.T("Appearance"), Loc.T("AppearanceDesc"), async () => await Navigation.PushAsync(new CustomizationPage())));
+        var profileWrap = CreateCard(); profileWrap.Content = profileList; profileWrap.Padding = 0;
+        content.Children.Add(profileWrap);
+
+        // Дополнительно Секция
+        content.Children.Add(new Label { Text = Loc.T("More"), FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 10, 0, 0) });
+        var moreList = new VerticalStackLayout { Spacing = 1 };
+        moreList.Children.Add(CreateListItem("icon_coffee.png", Loc.T("SupportDev"), null, async () => await Navigation.PushAsync(new SupportPage())));
+        moreList.Children.Add(CreateListItem("icon_help.png", Loc.T("Help"), null, async () => await Navigation.PushAsync(new HelpPage())));
+        moreList.Children.Add(CreateListItem("icon_info.png", Loc.T("AboutApp"), "v0.2.0", async () => await Navigation.PushAsync(new InfoPage())));
+        var moreWrap = CreateCard(); moreWrap.Content = moreList; moreWrap.Padding = 0;
+        content.Children.Add(moreWrap);
+
+        // Выйти
+        var logoutBtn = new Button { Text = Loc.T("LogOut"), BackgroundColor = Colors.Transparent, BorderColor = ThemeManager.AccentColor, BorderWidth = 1, TextColor = ThemeManager.AccentColor, CornerRadius = 14, HeightRequest = 50, Margin = new Thickness(0, 20, 0, 0) };
+        content.Children.Add(logoutBtn);
+
+        var scroll = new ScrollView { Content = content };
+        
+        var rootGrid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
+        rootGrid.Add(scroll, 0, 0);
+        rootGrid.Add(new BottomNavBar(4, repo), 0, 1);
 
         // Свайпы
-        var swipeLeft = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, repo); // Влево -> Настройки
-        grid.GestureRecognizers.Add(swipeLeft);
+        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
+        rootGrid.GestureRecognizers.Add(swipeL);
+        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
+        rootGrid.GestureRecognizers.Add(swipeR);
 
-        var swipeRight = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo); // Вправо -> Магазин
-        grid.GestureRecognizers.Add(swipeRight);
+        Content = rootGrid;
+        ThemeManager.Apply();
+    }
 
-        Content = grid;
+    private Border CreateCard()
+    {
+        var b = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 16 };
+        b.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+        b.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+        return b;
+    }
+
+    private View CreateListItem(string icon, string title, string? value, Action? onTap = null)
+    {
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 12, Padding = new Thickness(16, 12) };
+        
+        var img = new Image { Source = icon, WidthRequest = 22, HeightRequest = 22 };
+        img.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        
+        var lbl = new Label { Text = title, FontSize = 14, VerticalOptions = LayoutOptions.Center };
+        ThemeManager.BindText(lbl);
+        
+        var rightStack = new HorizontalStackLayout { Spacing = 8, VerticalOptions = LayoutOptions.Center };
+        if (!string.IsNullOrEmpty(value)) rightStack.Children.Add(new Label { Text = value, FontSize = 12, TextColor = Colors.Gray });
+        rightStack.Children.Add(new Label { Text = ">", FontSize = 16, TextColor = Colors.Gray });
+        
+        grid.Add(img, 0, 0); grid.Add(lbl, 1, 0); grid.Add(rightStack, 2, 0);
+
+        if (onTap != null)
+        {
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += (_, _) => onTap();
+            grid.GestureRecognizers.Add(tap);
+        }
+        return grid;
     }
 }
