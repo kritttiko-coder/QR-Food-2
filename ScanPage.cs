@@ -301,6 +301,30 @@ public class ScanPage : ContentPage
         photoBorder.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         photoBorder.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
 
+var captureBtn = new Button 
+{ 
+    Text = "Сфоткать упаковку", 
+    BackgroundColor = Colors.Transparent, 
+    TextColor = ThemeManager.AccentColor, 
+    BorderColor = ThemeManager.AccentColor, 
+    BorderWidth = 1, 
+    CornerRadius = 10, 
+    HeightRequest = 40,
+    Margin = new Thickness(0, 0, 0, 10)
+};
+captureBtn.Clicked += async (_, _) =>
+{
+    var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
+    var path = await imgService.CaptureOwnPhotoAsync(_current.Serial ?? _current.Barcode ?? "unknown");
+    if (path != null)
+    {
+        _current.LocalImagePath = path;
+        _productImage.Source = ImageSource.FromFile(path);
+        _productImage.IsVisible = true;
+        _noPhotoLabel.IsVisible = false;
+    }
+};
+
         _gtinLabel = new Label { FontSize = 12 };
         ThemeManager.BindText(_gtinLabel, secondary: true);
 
