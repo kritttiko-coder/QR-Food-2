@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
+    
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -10,7 +13,7 @@
         android:supportsRtl="true"
         android:icon="@mipmap/ic_launcher_classic">
 
-        
+        <meta-data android:name="com.google.android.geo.API_KEY" android:value="ТВОЙ_КЛЮЧ_ЗДЕСЬ" />
 
         <activity-alias
             android:name=".LauncherClassic"
