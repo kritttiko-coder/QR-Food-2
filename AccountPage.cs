@@ -18,21 +18,37 @@ public class AccountPage : ContentPage
         var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         var title = new Label { Text = Loc.T("Account"), FontSize = 28, FontAttributes = FontAttributes.Bold };
         ThemeManager.BindText(title);
+        
         var gear = new Image { Source = "icon_gear.png", WidthRequest = 24, HeightRequest = 24 };
         gear.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         gear.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new SettingsPage(repo))) });
+        
         header.Add(title, 0, 0); header.Add(gear, 1, 0);
         content.Children.Add(header);
 
-        // Профиль
+        // Профиль (Карточка)
         var profileBorder = CreateCard();
         var profileGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 12 };
-        var avatar = new Border { WidthRequest = 60, HeightRequest = 60, StrokeShape = new RoundRectangle { CornerRadius = 30 }, Stroke = ThemeManager.AccentColor, StrokeThickness = 2, BackgroundColor = Color.FromArgb("#2A2A35"), Content = new Label { Text = "👤", FontSize = 30, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
+        
+        // Аватарка (вместо эмодзи используем иконку)
+        var avatarContent = new Image { Source = "icon_account.png", WidthRequest = 32, HeightRequest = 32 };
+        avatarContent.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var avatar = new Border { 
+            WidthRequest = 60, HeightRequest = 60, 
+            StrokeShape = new RoundRectangle { CornerRadius = 30 }, 
+            Stroke = ThemeManager.AccentColor, StrokeThickness = 2, 
+            BackgroundColor = Color.FromArgb("#2A2A35"), 
+            Content = avatarContent,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
+        };
+        
         var nameStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
         var uName = new Label { Text = "Andry", FontSize = 18, FontAttributes = FontAttributes.Bold };
         var uRole = new Label { Text = Loc.T("UserRole"), FontSize = 12, TextColor = Colors.Gray };
         ThemeManager.BindText(uName);
         nameStack.Children.Add(uName); nameStack.Children.Add(uRole);
+        
         var pChevron = new Label { Text = ">", FontSize = 18, TextColor = Colors.Gray, VerticalOptions = LayoutOptions.Center };
         profileGrid.Add(avatar, 0, 0); profileGrid.Add(nameStack, 1, 0); profileGrid.Add(pChevron, 2, 0);
         profileBorder.Content = profileGrid;
@@ -70,9 +86,52 @@ public class AccountPage : ContentPage
         var moreWrap = CreateCard(); moreWrap.Content = moreList; moreWrap.Padding = 0;
         content.Children.Add(moreWrap);
 
-        // Выйти
-        var logoutBtn = new Button { Text = Loc.T("LogOut"), BackgroundColor = Colors.Transparent, BorderColor = ThemeManager.AccentColor, BorderWidth = 1, TextColor = ThemeManager.AccentColor, CornerRadius = 14, HeightRequest = 50, Margin = new Thickness(0, 20, 0, 0) };
-        content.Children.Add(logoutBtn);
+        // --- Кнопка Выйти (Красивая, с иконкой) ---
+        var logoutBorder = new Border 
+        { 
+            Stroke = ThemeManager.AccentColor, 
+            StrokeThickness = 1, 
+            StrokeShape = new RoundRectangle { CornerRadius = 14 }, 
+            HeightRequest = 50, 
+            Margin = new Thickness(0, 20, 0, 0),
+            BackgroundColor = Colors.Transparent
+        };
+        
+        var logoutStack = new HorizontalStackLayout 
+        { 
+            Spacing = 8, 
+            HorizontalOptions = LayoutOptions.Center, 
+            VerticalOptions = LayoutOptions.Center 
+        };
+        
+        var logoutIcon = new Image { Source = "icon_logout.png", WidthRequest = 20, HeightRequest = 20 };
+        logoutIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        
+        var logoutText = new Label 
+        { 
+            Text = Loc.T("LogOut"), 
+            TextColor = ThemeManager.AccentColor, 
+            VerticalOptions = LayoutOptions.Center, 
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 15
+        };
+        
+        logoutStack.Children.Add(logoutIcon);
+        logoutStack.Children.Add(logoutText);
+        logoutBorder.Content = logoutStack;
+        
+        var logoutTap = new TapGestureRecognizer();
+        logoutTap.Tapped += async (_, _) => 
+        {
+            bool confirm = await DisplayAlert("Выход", "Вы уверены, что хотите выйти?", "Да", "Отмена");
+            if (confirm)
+            {
+                // Логика выхода
+            }
+        };
+        logoutBorder.GestureRecognizers.Add(logoutTap);
+        
+        content.Children.Add(logoutBorder);
 
         var scroll = new ScrollView { Content = content };
         
@@ -84,6 +143,7 @@ public class AccountPage : ContentPage
         var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
         swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
         rootGrid.GestureRecognizers.Add(swipeL);
+        
         var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
         swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
         rootGrid.GestureRecognizers.Add(swipeR);
