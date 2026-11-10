@@ -44,7 +44,7 @@ public class StorePage : ContentPage
         // --- ЛЕВАЯ ПАНЕЛЬ (Список покупок) ---
         var shopList = new VerticalStackLayout { Spacing = 10 };
         var shopHeader = new HorizontalStackLayout { Spacing = 8 };
-        var shopIcon = new Image { Source = "icon_cart.png", WidthRequest = 20, HeightRequest = 20 };
+        var shopIcon = new Image { Source = "icon_basket.png", WidthRequest = 20, HeightRequest = 20 };
         shopIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         var shopTitle = new Label { Text = Loc.T("ShoppingList"), FontSize = 16, FontAttributes = FontAttributes.Bold };
         ThemeManager.BindText(shopTitle);
@@ -97,7 +97,7 @@ public class StorePage : ContentPage
         templateBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
         templateBtn.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         var templateGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
-        var templateIcon = new Image { Source = "icon_brush.png", WidthRequest = 24, HeightRequest = 24 };
+        var templateIcon = new Image { Source = "icon_box.png", WidthRequest = 24, HeightRequest = 24 };
         templateIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         var templateStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
         var tTitle = new Label { Text = Loc.T("TemplateList"), FontSize = 14, FontAttributes = FontAttributes.Bold };
