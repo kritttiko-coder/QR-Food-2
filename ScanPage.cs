@@ -344,11 +344,10 @@ captureBtn.Clicked += async (_, _) =>
         saveBtn.Clicked += OnSave;
 
         return new ScrollView
-        {
-            Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } }
-        };
-    }
-
+{
+    Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, captureBtn, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } }
+};
+        
     private Entry CreateEntry(string placeholder)
     {
         var e = new Entry { Placeholder = placeholder, HeightRequest = 50 };
