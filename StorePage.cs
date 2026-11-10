@@ -1,4 +1,7 @@
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Graphics;
+using CommunityToolkit.Maui.Behaviors;
 
 namespace FoodExpiryApp;
 
@@ -6,25 +9,145 @@ public class StorePage : ContentPage
 {
     public StorePage(ProductRepository repo)
     {
-        Title = "Магазин";
+        Title = Loc.T("StoreTitle");
         ThemeManager.BindPage(this);
+        BuildUI(repo);
+    }
 
-        var title = new Label { Text = "Магазин", FontSize = 28, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+    private void BuildUI(ProductRepository repo)
+    {
+        // Шапка: Заголовок + Локация + Карта
+        var headerLayout = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto) } };
+        var title = new Label { Text = Loc.T("StoreTitle"), FontSize = 28, FontAttributes = FontAttributes.Bold };
         ThemeManager.BindText(title);
+        
+        var locStack = new HorizontalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
+        var locImg = new Image { Source = "icon_pin.png", WidthRequest = 20, HeightRequest = 20 };
+        locImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var locText = new Label { Text = "Чита", TextColor = ThemeManager.AccentColor, VerticalOptions = LayoutOptions.Center };
+        locStack.Children.Add(locImg); locStack.Children.Add(locText);
 
-        var grid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
-        grid.Add(title, 0, 0);
-        grid.Add(new BottomNavBar(1, repo), 0, 1);
+        var mapIcon = new Image { Source = "icon_map.png", WidthRequest = 24, HeightRequest = 24 };
+        mapIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+
+        headerLayout.Add(title, 0, 0); headerLayout.Add(locStack, 1, 0); headerLayout.Add(mapIcon, 2, 0);
+
+        // Поиск
+        var search = new SearchBar { Placeholder = Loc.T("SearchStores"), HeightRequest = 50 };
+        ThemeManager.BindSearch(search);
+        var searchFrame = new Border { StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = new Thickness(4,0), Content = search };
+        searchFrame.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+
+        // Сплит: Слева список, Справа карта
+        var mainGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(0.4, GridUnitType.Star), new ColumnDefinition(0.6, GridUnitType.Star) }, ColumnSpacing = 10 };
+
+        // --- ЛЕВАЯ ПАНЕЛЬ (Список покупок) ---
+        var shopList = new VerticalStackLayout { Spacing = 10 };
+        var shopHeader = new HorizontalStackLayout { Spacing = 8 };
+        var shopIcon = new Image { Source = "icon_cart.png", WidthRequest = 20, HeightRequest = 20 };
+        shopIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var shopTitle = new Label { Text = Loc.T("ShoppingList"), FontSize = 16, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(shopTitle);
+        shopHeader.Children.Add(shopIcon); shopHeader.Children.Add(shopTitle);
+        shopList.Children.Add(shopHeader);
+
+        // Тестовые элементы
+        AddShopItem(shopList, "🥛", "Молоко", "2 шт.");
+        AddShopItem(shopList, "🍞", "Хлеб", "1 шт.");
+        AddShopItem(shopList, "🥚", "Яйца", "1 уп.");
+        AddShopItem(shopList, "🍎", "Яблоки", "1 кг");
+
+        var btnAdd = new Button { Text = Loc.T("Add"), BackgroundColor = Colors.Transparent, BorderColor = ThemeManager.AccentColor, BorderWidth = 1, CornerRadius = 12, TextColor = ThemeManager.AccentColor };
+        var btnDel = new Button { Text = Loc.T("Delete"), BackgroundColor = Colors.Transparent, BorderColor = Color.FromArgb("#FF414D"), BorderWidth = 1, CornerRadius = 12, TextColor = Color.FromArgb("#FF414D") };
+        shopList.Children.Add(btnAdd); shopList.Children.Add(btnDel);
+
+        var leftPanel = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 20 }, Padding = 12, Content = shopList };
+        leftPanel.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+        leftPanel.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+
+        // --- ПРАВАЯ ПАНЕЛЬ (Карта) ---
+        var mapGrid = new Grid();
+        // Заглушка карты (картинка или фон)
+        var mapPlaceholder = new Border { BackgroundColor = Color.FromArgb("#1A2C4A"), StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 20 } };
+        mapGrid.Add(mapPlaceholder);
+
+        // Список магазинов поверх карты
+        var storesList = new VerticalStackLayout { Spacing = 8, Padding = 12, VerticalOptions = LayoutOptions.End };
+        var storesHeader = new HorizontalStackLayout { Spacing = 8 };
+        var storesIcon = new Image { Source = "icon_store.png", WidthRequest = 20, HeightRequest = 20 };
+        storesIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var storesTitle = new Label { Text = Loc.T("AvailableStores"), FontSize = 14, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(storesTitle);
+        storesHeader.Children.Add(storesIcon); storesHeader.Children.Add(storesTitle);
+        storesList.Children.Add(storesHeader);
+
+        AddStoreItem(storesList, "5", "Пятёрочка", "0.3 км");
+        AddStoreItem(storesList, "M", "Магнит", "0.5 км");
+        AddStoreItem(storesList, "Л", "Лента", "0.7 км");
+
+        var storesBorder = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 20 }, Padding = 4, Content = storesList, BackgroundColor = Color.FromRgba(0,0,0,0.7) };
+        storesBorder.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+        mapGrid.Add(storesBorder);
+
+        mainGrid.Add(leftPanel, 0, 0);
+        mainGrid.Add(mapGrid, 1, 0);
+
+        // Нижняя кнопка шаблона
+        var templateBtn = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 12, Margin = new Thickness(0, 10, 0, 0) };
+        templateBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+        templateBtn.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+        var templateGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
+        var templateIcon = new Image { Source = "icon_brush.png", WidthRequest = 24, HeightRequest = 24 };
+        templateIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var templateStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+        var tTitle = new Label { Text = Loc.T("TemplateList"), FontSize = 14, FontAttributes = FontAttributes.Bold };
+        var tDesc = new Label { Text = Loc.T("TemplateDesc"), FontSize = 11 };
+        ThemeManager.BindText(tTitle); ThemeManager.BindText(tDesc, true);
+        templateStack.Children.Add(tTitle); templateStack.Children.Add(tDesc);
+        var chevron = new Label { Text = ">", FontSize = 18, TextColor = Colors.Gray, VerticalOptions = LayoutOptions.Center };
+        templateGrid.Add(templateIcon, 0, 0); templateGrid.Add(templateStack, 1, 0); templateGrid.Add(chevron, 2, 0);
+        templateBtn.Content = templateGrid;
+
+        // Сборка контента
+        var content = new VerticalStackLayout { Padding = 16, Spacing = 12, Children = { headerLayout, searchFrame, mainGrid, templateBtn } };
+        var scroll = new ScrollView { Content = content };
+
+        var rootGrid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
+        rootGrid.Add(scroll, 0, 0);
+        rootGrid.Add(new BottomNavBar(1, repo), 0, 1);
 
         // Свайпы
-        var swipeLeft = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo); // Влево -> Главная
-        grid.GestureRecognizers.Add(swipeLeft);
+        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
+        rootGrid.GestureRecognizers.Add(swipeL);
+        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
+        rootGrid.GestureRecognizers.Add(swipeR);
 
-        var swipeRight = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo); // Вправо -> Аккаунт
-        grid.GestureRecognizers.Add(swipeRight);
+        Content = rootGrid;
+        ThemeManager.Apply();
+    }
 
-        Content = grid;
+    private void AddShopItem(VerticalStackLayout layout, string emoji, string name, string qty)
+    {
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 8, Padding = new Thickness(0, 4) };
+        var check = new CheckBox { Color = ThemeManager.AccentColor };
+        var icon = new Label { Text = emoji, FontSize = 20, VerticalOptions = LayoutOptions.Center };
+        var title = new Label { Text = name, FontSize = 14, VerticalOptions = LayoutOptions.Center };
+        ThemeManager.BindText(title);
+        var q = new Label { Text = qty, FontSize = 12, TextColor = Colors.Gray, VerticalOptions = LayoutOptions.Center };
+        grid.Add(check, 0, 0); grid.Add(icon, 1, 0); grid.Add(title, 2, 0); grid.Add(q, 3, 0);
+        layout.Children.Add(grid);
+    }
+
+    private void AddStoreItem(VerticalStackLayout layout, string logo, string name, string dist)
+    {
+        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 8, Padding = new Thickness(0, 4) };
+        var brand = new Border { WidthRequest = 30, HeightRequest = 30, StrokeShape = new RoundRectangle { CornerRadius = 8 }, BackgroundColor = Colors.White, Content = new Label { Text = logo, TextColor = Colors.Red, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
+        var title = new Label { Text = name, FontSize = 13, VerticalOptions = LayoutOptions.Center };
+        ThemeManager.BindText(title);
+        var d = new Label { Text = dist, FontSize = 12, TextColor = Colors.Gray, VerticalOptions = LayoutOptions.Center };
+        grid.Add(brand, 0, 0); grid.Add(title, 1, 0); grid.Add(d, 2, 0);
+        layout.Children.Add(grid);
     }
 }
