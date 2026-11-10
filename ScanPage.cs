@@ -354,3 +354,4 @@ captureBtn.Clicked += async (_, _) =>
         ThemeManager.BindEntry(e);
         return e;
     }
+}
