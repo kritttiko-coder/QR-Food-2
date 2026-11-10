@@ -133,6 +133,51 @@ public class LocalizationManager : INotifyPropertyChanged
         "CatVeg" => "Овощи и фрукты",
         "CatFreezer" => "Заморозка",
         "CatOther" => "Другое",
+
+        // Нижнее меню
+"Home" => "Главная",
+"Store" => "Магазин",
+"Statistics" => "Статистика",
+"Account" => "Аккаунт",
+"ScanTab" => "Сканер",
+
+// Магазин
+"StoreTitle" => "Магазин",
+"SearchStores" => "Поиск по магазинам или продуктам",
+"ShoppingList" => "Список покупок",
+"Add" => "Добавить",
+"Delete" => "Удалить",
+"AvailableStores" => "Доступные магазины",
+"TemplateList" => "Шаблон списка",
+"TemplateDesc" => "Быстрый выбор товаров",
+
+// Аккаунт
+"Profile" => "Профиль",
+"UserRole" => "Пользователь",
+"Sync" => "Синхронизация",
+"LastSync" => "Последняя: сегодня, 18:45",
+"ChangeName" => "Изменить имя",
+"Appearance" => "Оформление",
+"AppearanceDesc" => "Тема, цвет, иконка",
+"More" => "Дополнительно",
+"SupportDev" => "Поддержать разработчика",
+"AboutApp" => "О приложении",
+"LogOut" => "Выйти из аккаунта",
+
+// Статистика
+"Week" => "Неделя",
+"Month" => "Месяц",
+"Year" => "Год",
+"ProductsCount" => "Продукта",
+"AvgShelfLife" => "Дней ср. срок",
+"OnTime" => "Вовремя",
+"Expired" => "Просрочено",
+"ProductChanges" => "Изменение продуктов",
+"Categories" => "Категории",
+"CostEstimation" => "Оценка стоимости продуктов",
+"Spent" => "Потрачено на продукты за период",
+"CostWarning" => "Это экспериментальная функция. Данные примерные и находятся с помощью средней цены в ближайших магазинов. Точность зависит от вашего местоположения.",
+"NearestExpirations" => "Ближайшие сроки",
         
         // Инфо (InfoPage)
 "ExpiryColorsTitle" => "Цвета сроков годности",
@@ -231,6 +276,51 @@ public class LocalizationManager : INotifyPropertyChanged
         "CatVeg" => "Vegetables & Fruits",
         "CatFreezer" => "Frozen",
         "CatOther" => "Other",
+
+        // Bottom Nav
+"Home" => "Home",
+"Store" => "Store",
+"Statistics" => "Statistics",
+"Account" => "Account",
+"ScanTab" => "Scan",
+
+// Store
+"StoreTitle" => "Store",
+"SearchStores" => "Search stores or products",
+"ShoppingList" => "Shopping List",
+"Add" => "Add",
+"Delete" => "Delete",
+"AvailableStores" => "Available stores",
+"TemplateList" => "List template",
+"TemplateDesc" => "Quick product selection",
+
+// Account
+"Profile" => "Profile",
+"UserRole" => "User",
+"Sync" => "Synchronization",
+"LastSync" => "Last: today, 18:45",
+"ChangeName" => "Change name",
+"Appearance" => "Appearance",
+"AppearanceDesc" => "Theme, color, icon",
+"More" => "More",
+"SupportDev" => "Support developer",
+"AboutApp" => "About app",
+"LogOut" => "Log out",
+
+// Statistics
+"Week" => "Week",
+"Month" => "Month",
+"Year" => "Year",
+"ProductsCount" => "Products",
+"AvgShelfLife" => "Avg shelf life",
+"OnTime" => "On time",
+"Expired" => "Expired",
+"ProductChanges" => "Product changes",
+"Categories" => "Categories",
+"CostEstimation" => "Product cost estimation",
+"Spent" => "Spent on products",
+"CostWarning" => "This is an experimental feature. Data is approximate and based on the average price in nearby stores. Accuracy depends on your location.",
+"NearestExpirations" => "Nearest expirations",
 
         // info (InfoPage)
 "ExpiryColorsTitle" => "Expiry Date Colors",
