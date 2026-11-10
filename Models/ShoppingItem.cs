@@ -10,6 +10,7 @@ public class ShoppingItem : INotifyPropertyChanged
     public string Name { get; set; } = "";
     public string Quantity { get; set; } = "";
     public string Emoji { get; set; } = "🛒";
+    public double Price { get; set; } // Цена товара
 
     public bool IsChecked
     {
