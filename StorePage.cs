@@ -67,16 +67,22 @@ public class StorePage : ContentPage
         var btnStack = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8 };
         
         var btnAdd = new Button { Text = "+", BackgroundColor = Colors.Transparent, BorderColor = ThemeManager.AccentColor, BorderWidth = 1, CornerRadius = 12, TextColor = ThemeManager.AccentColor, FontSize = 20 };
-        btnAdd.Clicked += async (_, _) =>
-        {
-            string name = await DisplayPromptAsync("Новый товар", "Введите название:", "ОК", "Отмена");
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                _shoppingItems.Add(new ShoppingItem { Name = name, Quantity = "1 шт.", Emoji = "🛒" });
-                RenderShoppingList();
-            }
-        };
         
+btnAdd.Clicked += async (_, _) =>
+{
+    string name = await DisplayPromptAsync("Новый товар", "Введите название:", "ОК", "Отмена");
+    if (!string.IsNullOrWhiteSpace(name))
+    {
+        var priceSrv = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
+        _shoppingItems.Add(new ShoppingItem { 
+            Name = name, 
+            Quantity = "1 шт.", 
+            Emoji = "🛒",
+            Price = priceSrv.GetPrice(name) // <-- Сразу считаем цену!
+        });
+        RenderShoppingList();
+    }
+};
         var btnDel = new Button { Text = Loc.T("Delete"), BackgroundColor = Colors.Transparent, BorderColor = Color.FromArgb("#FF414D"), BorderWidth = 1, CornerRadius = 12, TextColor = Color.FromArgb("#FF414D") };
         btnDel.Clicked += (_, _) =>
         {
