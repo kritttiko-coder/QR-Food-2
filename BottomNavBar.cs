@@ -13,39 +13,75 @@ public class BottomNavBar : ContentView
         {
             ColumnDefinitions = { 
                 new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star), 
-                new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) 
+                new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Star) 
             },
-            Padding = new Thickness(10, 8, 10, 16)
+            Padding = new Thickness(0, 8, 0, 16)
         };
 
-        // 4 кнопки: Меню, Магазин, Аккаунт, Настройки
-        string[] icons = { "icon_menu.png", "icon_store.png", "icon_account.png", "icon_gear.png" };
+        // 0-Главная, 1-Магазин, 3-Статистика, 4-Аккаунт
+        string[] icons = { "icon_menu.png", "icon_store.png", "icon_chart.png", "icon_account.png" };
+        string[] labels = { Loc.T("Home"), Loc.T("Store"), Loc.T("Statistics"), Loc.T("Account") };
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 5; i++)
         {
-            var img = new Image { Source = icons[i], WidthRequest = 26, HeightRequest = 26, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-            img.Behaviors.Add(new IconTintColorBehavior { TintColor = Colors.White });
-
-            var border = new Border
+            if (i == 2) // Центральная кнопка QR
             {
-                StrokeThickness = i == currentTab ? 2 : 0,
-                Stroke = i == currentTab ? ThemeManager.AccentColor : Colors.Transparent,
-                StrokeShape = new RoundRectangle { CornerRadius = 16 },
-                WidthRequest = 48, HeightRequest = 48, Padding = 0,
-                HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center,
-                Content = img
-            };
+                var qrBorder = new Border
+                {
+                    WidthRequest = 64, HeightRequest = 64,
+                    StrokeShape = new RoundRectangle { CornerRadius = 32 },
+                    StrokeThickness = 4, Stroke = ThemeManager.AccentColor,
+                    BackgroundColor = Color.FromArgb("#1C1C22"),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    Margin = new Thickness(0, -20, 0, 0), // Поднимаем вверх
+                    ZIndex = 10
+                };
+                
+                var qrImg = new Image { Source = "icon_qr.png", WidthRequest = 32, HeightRequest = 32 };
+                qrImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+                qrBorder.Content = qrImg;
 
-            int tabIndex = i; 
-            var tap = new TapGestureRecognizer();
-            tap.Tapped += (_, _) => 
+                var tapQr = new TapGestureRecognizer();
+                tapQr.Tapped += async (_, _) => await Application.Current!.MainPage!.Navigation.PushAsync(new ScanPage(repo));
+                qrBorder.GestureRecognizers.Add(tapQr);
+
+                navGrid.Add(qrBorder, 2, 0);
+            }
+            else
             {
-                if (tabIndex == currentTab) return; // Уже здесь
-                SwitchToTab(tabIndex, repo); // Вызываем наш новый метод
-            };
-            border.GestureRecognizers.Add(tap);
+                int tabIndex = i > 2 ? i + 1 : i; // Сдвиг индекса из-за QR
+                bool isSelected = tabIndex == currentTab;
+                Color color = isSelected ? ThemeManager.AccentColor : Color.FromArgb("#888888");
 
-            navGrid.Add(border, i, 0);
+                var stack = new VerticalStackLayout { Spacing = 2, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+                
+                var img = new Image { Source = icons[i], WidthRequest = 24, HeightRequest = 24 };
+                img.Behaviors.Add(new IconTintColorBehavior { TintColor = color });
+
+                var lbl = new Label { Text = labels[i], FontSize = 10, TextColor = color };
+
+                stack.Children.Add(img);
+                stack.Children.Add(lbl);
+
+                var border = new Border
+                {
+                    StrokeThickness = 0, BackgroundColor = Colors.Transparent,
+                    Padding = new Thickness(10, 8),
+                    Content = stack
+                };
+
+                var tap = new TapGestureRecognizer();
+                tap.Tapped += (_, _) => 
+                {
+                    if (tabIndex == currentTab) return;
+                    SwitchToTab(tabIndex, repo); 
+                };
+                border.GestureRecognizers.Add(tap);
+
+                navGrid.Add(border, i, 0);
+            }
         }
 
         var bgColor = (Color)Application.Current!.Resources[ThemeManager.SurfaceAlt];
@@ -54,24 +90,22 @@ public class BottomNavBar : ContentView
         Content = new Border
         {
             BackgroundColor = transparentBg,
-            StrokeThickness = 0,
+            StrokeThickness = 1, Stroke = Color.FromRgba(255,255,255,0.1),
             StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24, 24, 0, 0) },
             Content = navGrid
         };
     }
 
-    // МЕТОД ДЛЯ ПЕРЕКЛЮЧЕНИЯ 
     public static void SwitchToTab(int tabIndex, ProductRepository repo)
     {
         Page nextPage = tabIndex switch
         {
             0 => new MainPage(repo),
-            1 => new MainPage(repo), // Заглушка для магазина
-            2 => new MainPage(repo), // Заглушка для аккаунта
-            3 => new SettingsPage(repo), // Настройки
+            1 => new StorePage(repo),
+            3 => new StatisticsPage(repo),
+            4 => new AccountPage(repo),
             _ => new MainPage(repo)
         };
-        
         Application.Current!.MainPage = new NavigationPage(nextPage);
     }
 }
