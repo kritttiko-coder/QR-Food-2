@@ -23,11 +23,11 @@ public static class MauiProgram
             .UseOcr();
 
         // 2. Регистрируем наши сервисы (отдельные команды)
-        builder.Services.AddSingleton<Services.ProductImageService>();
-        // Сюда же потом добавим другие сервисы, если понадобятся:
-        // builder.Services.AddSingleton<Services.DataMatrixCaptureService>();
-        // builder.Services.AddSingleton<Services.ExpiryOcrService>();
-        // builder.Services.AddSingleton<Services.OpenFoodFactsClient>();
+         builder.Services.AddSingleton<Services.ProductImageService>();
+         builder.Services.AddSingleton<ProductRepository>();
+         builder.Services.AddSingleton<Services.DataMatrixCaptureService>();
+         builder.Services.AddSingleton<Services.ExpiryOcrService>();
+         builder.Services.AddSingleton<Services.OpenFoodFactsClient>();
 
 #if DEBUG
         builder.Logging.AddDebug();
