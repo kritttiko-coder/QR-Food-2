@@ -28,6 +28,7 @@ public static class MauiProgram
          builder.Services.AddSingleton<Services.DataMatrixCaptureService>();
          builder.Services.AddSingleton<Services.ExpiryOcrService>();
          builder.Services.AddSingleton<Services.OpenFoodFactsClient>();
+         builder.Services.AddSingleton<Services.PriceService>();
 
 #if DEBUG
         builder.Logging.AddDebug();
