@@ -20,8 +20,12 @@ public class BottomNavBar : ContentView
         };
 
         // 0-Главная, 1-Магазин, 3-Статистика, 4-Аккаунт
-        string[] icons = { "icon_menu.png", "icon_store.png", "icon_chart.png", "icon_account.png" };
-        string[] labels = { Loc.T("Home"), Loc.T("Store"), Loc.T("Statistics"), Loc.T("Account") };
+        // 0-Главная, 1-Магазин, 3-Статистика, 4-Аккаунт
+string[] icons = { "icon_home.png", "icon_shop_bag.png", "icon_chart_bar.png", "icon_user.png" };
+string[] labels = { Loc.T("Home"), Loc.T("Store"), Loc.T("Statistics"), Loc.T("Account") };
+
+// Внутри цикла, где создается QR (i == 2):
+var qrImg = new Image { Source = "icon_camera.png", WidthRequest = 32, HeightRequest = 32 };
 
         for (int i = 0; i < 5; i++)
         {
