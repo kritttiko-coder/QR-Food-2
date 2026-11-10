@@ -205,9 +205,14 @@ public class StatisticsPage : ContentPage
         _donutChartView.Drawable = donutDrawable;
         _donutChartView.Invalidate();
 
-        // 4. Стоимость (150 руб. за продукт, т.к. в базе нет цен)
-        decimal estimatedCost = total * 150;
-        _lblCost.Text = $"≈ {estimatedCost:N0} ₽";
+        // 4. Стоимость 
+        // 4. Стоимость (умный подсчет)
+var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
+
+// Считаем общую сумму всех продуктов в базе (или отфильтрованных за период)
+double estimatedCost = filtered.Sum(p => priceService.GetPrice(p));
+
+_lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
 
         // 5. Ближайшие сроки (Топ 3)
         _nearestList.Children.Clear();
