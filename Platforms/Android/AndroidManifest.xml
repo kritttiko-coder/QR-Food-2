@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:icon="@mipmap/ic_launcher_classic">
 
-        <meta-data android:name="com.google.android.geo.API_KEY" android:value="ТВОЙ_КЛЮЧ_ЗДЕСЬ" />
+      <!  <meta-data android:name="com.google.android.geo.API_KEY" android:value="ТВОЙ_КЛЮЧ_ЗДЕСЬ" /> >
 
         <activity-alias
             android:name=".LauncherClassic"
