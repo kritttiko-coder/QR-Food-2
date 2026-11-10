@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using ZXing.Net.Maui;
 using ZXing.Net.Maui.Controls;
 using Plugin.Maui.OCR;
+using Microsoft.Maui.Controls.Maps; 
+
 
 namespace FoodExpiryApp;
 
@@ -17,6 +19,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()         
             .UseBarcodeReader()
+            .UseMauiMaps()
             .UseOcr();
 
         // 2. Регистрируем наши сервисы (отдельные команды)
