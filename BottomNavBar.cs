@@ -26,36 +26,48 @@ string[] labels = { Loc.T("Home"), Loc.T("Store"), Loc.T("Statistics"), Loc.T("A
 
 // Внутри цикла, где создается QR (i == 2):
 var qrImg = new Image { Source = "icon_camera.png", WidthRequest = 32, HeightRequest = 32 };
-qrImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-qrBorder.Content = qrImg;
-        for (int i = 0; i < 5; i++)
+for (int i = 0; i < 5; i++)
+{
+    if (i == 2) // Центральная кнопка QR
+    {
+        var qrBorder = new Border
         {
-            if (i == 2) // Центральная кнопка QR
-            {
-                var qrBorder = new Border
-                {
-                    WidthRequest = 64, HeightRequest = 64,
-                    StrokeShape = new RoundRectangle { CornerRadius = 32 },
-                    StrokeThickness = 4, Stroke = ThemeManager.AccentColor,
-                    BackgroundColor = Color.FromArgb("#1C1C22"),
-                    HorizontalOptions = LayoutOptions.Center,
-                    VerticalOptions = LayoutOptions.Center,
-                    Margin = new Thickness(0, -20, 0, 0), // Поднимаем вверх
-                    ZIndex = 10
-                };
-                
-                var tapQr = new TapGestureRecognizer();
-                tapQr.Tapped += async (_, _) => await Application.Current!.MainPage!.Navigation.PushAsync(new ScanPage(repo));
-                qrBorder.GestureRecognizers.Add(tapQr);
+            WidthRequest = 64, HeightRequest = 64,
+            StrokeShape = new RoundRectangle { CornerRadius = 32 },
+            StrokeThickness = 4, Stroke = ThemeManager.AccentColor,
+            BackgroundColor = Color.FromArgb("#1C1C22"),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+            Margin = new Thickness(0, -20, 0, 0),
+            ZIndex = 10
+        };
 
-                navGrid.Add(qrBorder, 2, 0);
-            }
-            else
-            {
-                int tabIndex = i > 2 ? i + 1 : i; // Сдвиг индекса из-за QR
-                bool isSelected = tabIndex == currentTab;
-                Color color = isSelected ? ThemeManager.AccentColor : Color.FromArgb("#888888");
+        // ← иконку создаём ЗДЕСЬ, после qrBorder
+        var qrImg = new Image
+        {
+            Source = "icon_camera.png",
+            WidthRequest = 32,
+            HeightRequest = 32
+        };
+        qrImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        qrBorder.Content = qrImg;
 
+        var tapQr = new TapGestureRecognizer();
+        tapQr.Tapped += async (_, _) =>
+            await Application.Current!.MainPage!.Navigation.PushAsync(new ScanPage(repo));
+        qrBorder.GestureRecognizers.Add(tapQr);
+
+        navGrid.Add(qrBorder, 2, 0);
+    }
+    else
+    {
+        int tabIndex = i > 2 ? i + 1 : i;
+        bool isSelected = tabIndex == currentTab;
+        Color color = isSelected ? ThemeManager.AccentColor : Color.FromArgb("#888888");
+
+        
+    }
+}
                 var stack = new VerticalStackLayout { Spacing = 2, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
                 
                 var img = new Image { Source = icons[i], WidthRequest = 24, HeightRequest = 24 };
