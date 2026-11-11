@@ -42,7 +42,7 @@ public class BottomNavBar : ContentView
 
                 var qrImg = new Image
                 {
-                    Source = "icon_camera.png",
+                    Source = "icon_qr_code_scanner.png",
                     WidthRequest = 32,
                     HeightRequest = 32
                 };
