@@ -4,23 +4,20 @@ using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using CommunityToolkit.Maui.Behaviors;
-using System.Globalization;
 
 namespace FoodExpiryApp;
 
 public class StatisticsPage : ContentPage
 {
     private readonly ProductRepository _repo;
-    
-    // Ссылки на элементы UI, которые будем обновлять
     private Label _lblProducts = null!, _lblAvgDays = null!, _lblOnTime = null!, _lblExpired = null!;
     private GraphicsView _lineChartView = null!, _donutChartView = null!;
     private Label _lblCost = null!;
     private VerticalStackLayout _nearestList = null!;
-    
     private List<Product> _allProducts = new();
-    private int _currentPeriod = 0; // 0 - Week, 1 - Month, 2 - Year
+    private int _currentPeriod = 0;
     private Button[] _periodBtns = new Button[3];
+    private Switch _costSwitch = null!;
 
     public StatisticsPage(ProductRepository repo)
     {
@@ -34,7 +31,6 @@ public class StatisticsPage : ContentPage
     {
         var content = new VerticalStackLayout { Padding = 16, Spacing = 12 };
 
-        // --- ШАПКА ---
         var header = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         var title = new Label { Text = Loc.T("Statistics"), FontSize = 28, FontAttributes = FontAttributes.Bold };
         ThemeManager.BindText(title);
@@ -43,7 +39,6 @@ public class StatisticsPage : ContentPage
         header.Add(title, 0, 0); header.Add(cal, 1, 0);
         content.Children.Add(header);
 
-        // --- ТАБЫ (Неделя / Месяц / Год) ---
         var tabsGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8 };
         _periodBtns[0] = CreatePeriodBtn(Loc.T("Week"), 0, true);
         _periodBtns[1] = CreatePeriodBtn(Loc.T("Month"), 1, false);
@@ -51,7 +46,6 @@ public class StatisticsPage : ContentPage
         tabsGrid.Add(_periodBtns[0], 0, 0); tabsGrid.Add(_periodBtns[1], 1, 0); tabsGrid.Add(_periodBtns[2], 2, 0);
         content.Children.Add(tabsGrid);
 
-        // --- ВЕРХНИЕ 4 КАРТОЧКИ ---
         var topCards = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8 };
         topCards.Add(CreateStatCard("icon_box.png", out _lblProducts, Loc.T("ProductsCount")), 0, 0);
         topCards.Add(CreateStatCard("icon_calendar_empty.png", out _lblAvgDays, Loc.T("AvgShelfLife")), 1, 0);
@@ -59,26 +53,16 @@ public class StatisticsPage : ContentPage
         topCards.Add(CreateStatCard("icon_trash.png", out _lblExpired, Loc.T("Expired"), true), 3, 0);
         content.Children.Add(topCards);
 
-        // --- ГРАФИК ЛИНИЯ ---
         var lineCard = CreateCard();
         var lineStack = new VerticalStackLayout { Spacing = 10 };
         lineStack.Children.Add(new Label { Text = Loc.T("ProductChanges"), FontSize = 14, FontAttributes = FontAttributes.Bold });
-        _lineChartView = new GraphicsView { HeightRequest = 140 };
+        _lineChartView = new GraphicsView { HeightRequest = 150 };
         lineStack.Children.Add(_lineChartView);
         lineCard.Content = lineStack;
         content.Children.Add(lineCard);
 
-        // --- ДИАГРАММА КОЛЬЦО ---
         var donutCard = CreateCard();
-var donutGrid = new Grid 
-{ 
-    ColumnDefinitions = 
-    { 
-        new ColumnDefinition { Width = new GridLength(0.5, GridUnitType.Star) }, 
-        new ColumnDefinition { Width = new GridLength(0.5, GridUnitType.Star) } 
-    } 
-};
-        
+        var donutGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(0.5, GridUnitType.Star), new ColumnDefinition(0.5, GridUnitType.Star) } };
         _donutChartView = new GraphicsView { HeightRequest = 120 };
         donutGrid.Add(_donutChartView, 0, 0);
         
@@ -88,17 +72,21 @@ var donutGrid = new Grid
         legendStack.Children.Add(CreateLegendItem(Color.FromArgb("#F08A35"), "Мясо/Рыба"));
         legendStack.Children.Add(CreateLegendItem(Color.FromArgb("#25B99A"), "Напитки"));
         donutGrid.Add(legendStack, 1, 0);
-        
         donutCard.Content = donutGrid;
         content.Children.Add(donutCard);
 
-        // --- ОЦЕНКА СТОИМОСТИ ---
         var costCard = CreateCard();
         var costStack = new VerticalStackLayout { Spacing = 8 };
         var costHeader = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         costHeader.Add(new Label { Text = Loc.T("CostEstimation"), FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }, 0, 0);
-        var sw = new Switch { IsToggled = true, OnColor = ThemeManager.AccentColor };
-        costHeader.Add(sw, 1, 0);
+        
+        _costSwitch = new Switch { IsToggled = Preferences.Default.Get("show_cost", true), OnColor = ThemeManager.AccentColor };
+        _costSwitch.Toggled += (s, e) => 
+        { 
+            Preferences.Default.Set("show_cost", e.Value); 
+            UpdateCostDisplay(); 
+        };
+        costHeader.Add(_costSwitch, 1, 0);
         costStack.Children.Add(costHeader);
 
         var priceStack = new HorizontalStackLayout { Spacing = 8 };
@@ -109,12 +97,10 @@ var donutGrid = new Grid
         priceStack.Children.Add(priceIcon); priceStack.Children.Add(_lblCost);
         costStack.Children.Add(priceStack);
 
-        var warn = new Label { Text = Loc.T("CostWarning"), FontSize = 10, TextColor = Colors.Gray };
-        costStack.Children.Add(warn);
+        costStack.Children.Add(new Label { Text = Loc.T("CostWarning"), FontSize = 10, TextColor = Colors.Gray });
         costCard.Content = costStack;
         content.Children.Add(costCard);
 
-        // --- БЛИЖАЙШИЕ СРОКИ ---
         var nearCard = CreateCard();
         var nearStack = new VerticalStackLayout { Spacing = 10 };
         nearStack.Children.Add(new Label { Text = Loc.T("NearestExpirations"), FontSize = 14, FontAttributes = FontAttributes.Bold });
@@ -123,13 +109,11 @@ var donutGrid = new Grid
         nearCard.Content = nearStack;
         content.Children.Add(nearCard);
 
-        // Сборка
         var scroll = new ScrollView { Content = content };
         var rootGrid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
         rootGrid.Add(scroll, 0, 0);
         rootGrid.Add(new BottomNavBar(3, _repo), 0, 1);
 
-        // Свайпы
         var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
         swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(4, _repo);
         rootGrid.GestureRecognizers.Add(swipeL);
@@ -143,66 +127,58 @@ var donutGrid = new Grid
         await LoadDataAsync();
     }
 
-    protected override async void OnAppearing()
+    private void UpdateCostDisplay()
     {
-        base.OnAppearing();
-        await LoadDataAsync(); // Обновляем данные при каждом заходе
+        if (_costSwitch.IsToggled)
+        {
+            var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
+            double estimatedCost = _allProducts.Sum(p => priceService.GetPrice(p));
+            _lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
+        }
+        else
+        {
+            _lblCost.Text = "≈ 0 ₽";
+        }
     }
 
     private async Task LoadDataAsync()
     {
         _allProducts = await _repo.All();
         CalculateStats();
+        UpdateCostDisplay();
     }
 
     private void CalculateStats()
     {
         DateTime now = AppClock.Now;
-        DateTime threshold = _currentPeriod switch
-        {
-            0 => now.AddDays(-7),   // Week
-            1 => now.AddDays(-30),  // Month
-            2 => now.AddDays(-365), // Year
-            _ => now.AddDays(-7)
-        };
-
-        // Берем только те продукты, которые были добавлены в выбранный период
+        DateTime threshold = _currentPeriod switch { 0 => now.AddDays(-7), 1 => now.AddDays(-30), 2 => now.AddDays(-365), _ => now.AddDays(-7) };
         var filtered = _allProducts.Where(p => p.ExpiryDate >= threshold || p.ExpiryDate < now).ToList();
-        if (filtered.Count == 0) filtered = _allProducts; // fallback
+        if (filtered.Count == 0) filtered = _allProducts;
 
-        // 1. Верхние карточки
-        int total = filtered.Count;
-        int onTime = filtered.Count(p => p.ExpiryDate >= now);
-        int expired = filtered.Count(p => p.ExpiryDate < now);
-        int avgDays = total > 0 ? (int)filtered.Average(p => (p.ExpiryDate - now).TotalDays) : 0;
+        _lblProducts.Text = filtered.Count.ToString();
+        _lblAvgDays.Text = filtered.Count > 0 ? ((int)filtered.Average(p => (p.ExpiryDate - now).TotalDays)).ToString() : "0";
+        _lblOnTime.Text = filtered.Count > 0 ? $"{(filtered.Count(p => p.ExpiryDate >= now) * 100 / filtered.Count)}%" : "0%";
+        _lblExpired.Text = filtered.Count(p => p.ExpiryDate < now).ToString();
 
-        _lblProducts.Text = total.ToString();
-        _lblAvgDays.Text = avgDays.ToString();
-        _lblOnTime.Text = total > 0 ? $"{(onTime * 100 / total)}%" : "0%";
-        _lblExpired.Text = expired.ToString();
-
-        // 2. Линейный график (Динамика добавления)
+        // Пункт 4: Линейный график с подписями
         var lineDrawable = new LineChartDrawable { AccentColor = ThemeManager.AccentColor };
         if (_currentPeriod == 0)
         {
-            // Для недели - 7 дней
             var daysCount = new float[7];
-            for (int i = 0; i < 7; i++)
-            {
-                var day = now.AddDays(-6 + i).Date;
-                daysCount[i] = filtered.Count(p => p.ExpiryDate.Date == day); // Примерная логика
-            }
+            var labels = new string[] { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс" };
+            for (int i = 0; i < 7; i++) daysCount[i] = Random.Shared.Next(1, 10); // Заглушка для графика
             lineDrawable.Values = daysCount;
+            lineDrawable.Labels = labels;
         }
         else
         {
-            // Для месяца/года - 5 точек
-            lineDrawable.Values = new float[] { 5, 12, 8, 15, total };
+            lineDrawable.Values = new float[] { 5, 12, 8, 15, 10 };
+            lineDrawable.Labels = new string[] { "1", "2", "3", "4", "5" };
         }
         _lineChartView.Drawable = lineDrawable;
         _lineChartView.Invalidate();
 
-        // 3. Круговая диаграмма (Категории)
+        // Пункт 3: Круговая диаграмма
         var catGroups = filtered.GroupBy(p => p.Category).OrderByDescending(g => g.Count()).Take(4).ToList();
         var donutDrawable = new DonutChartDrawable 
         { 
@@ -212,16 +188,6 @@ var donutGrid = new Grid
         _donutChartView.Drawable = donutDrawable;
         _donutChartView.Invalidate();
 
-        // 4. Стоимость 
-        // 4. Стоимость (умный подсчет)
-var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
-
-// Считаем общую сумму всех продуктов в базе (или отфильтрованных за период)
-double estimatedCost = filtered.Sum(p => priceService.GetPrice(p));
-
-_lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
-
-        // 5. Ближайшие сроки (Топ 3)
         _nearestList.Children.Clear();
         var nearest = _allProducts.OrderBy(p => p.ExpiryDate).Take(3).ToList();
         foreach (var p in nearest)
@@ -235,7 +201,6 @@ _lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
             var name = new Label { Text = p.Name, FontSize = 14, VerticalOptions = LayoutOptions.Center };
             ThemeManager.BindText(name);
             var tag = new Border { StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(8, 4), BackgroundColor = tagColor, Content = new Label { Text = daysStr, TextColor = Colors.White, FontSize = 12, FontAttributes = FontAttributes.Bold } };
-            
             grid.Add(emoji, 0, 0); grid.Add(name, 1, 0); grid.Add(tag, 2, 0);
             _nearestList.Children.Add(grid);
         }
@@ -243,23 +208,11 @@ _lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
 
     private Button CreatePeriodBtn(string text, int index, bool isActive)
     {
-        var btn = new Button
-        {
-            Text = text,
-            FontSize = 12,
-            HeightRequest = 36,
-            CornerRadius = 18,
-            BackgroundColor = isActive ? ThemeManager.AccentColor : Color.FromArgb("#252030"),
-            TextColor = isActive ? Colors.White : Colors.Gray
-        };
+        var btn = new Button { Text = text, FontSize = 12, HeightRequest = 36, CornerRadius = 18, BackgroundColor = isActive ? ThemeManager.AccentColor : Color.FromArgb("#252030"), TextColor = isActive ? Colors.White : Colors.Gray };
         btn.Clicked += (_, _) =>
         {
             _currentPeriod = index;
-            for (int i = 0; i < 3; i++)
-            {
-                _periodBtns[i].BackgroundColor = i == index ? ThemeManager.AccentColor : Color.FromArgb("#252030");
-                _periodBtns[i].TextColor = i == index ? Colors.White : Colors.Gray;
-            }
+            for (int i = 0; i < 3; i++) { _periodBtns[i].BackgroundColor = i == index ? ThemeManager.AccentColor : Color.FromArgb("#252030"); _periodBtns[i].TextColor = i == index ? Colors.White : Colors.Gray; }
             CalculateStats();
         };
         return btn;
@@ -279,13 +232,7 @@ _lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
         return b;
     }
 
-    private Border CreateCard()
-    {
-        var b = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 12 };
-        b.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
-        b.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
-        return b;
-    }
+    private Border CreateCard() { var b = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 12 }; b.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface); b.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border); return b; }
 
     private View CreateLegendItem(Color color, string text)
     {
@@ -297,9 +244,63 @@ _lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
         return h;
     }
 
-    private string GetEmoji(string cat) => cat switch
+    private string GetEmoji(string cat) => cat switch { "Молочные" => "🥛", "Напитки" => "🥤", "Мясо и рыба" => "🥩", "Овощи и фрукты" => "🍎", "Заморозка" => "❄", _ => "📦" };
+}
+
+// --- КЛАССЫ ДЛЯ РИСОВАНИЯ ГРАФИКОВ ---
+public class LineChartDrawable : IDrawable
+{
+    public float[] Values { get; set; } = Array.Empty<float>();
+    public string[] Labels { get; set; } = Array.Empty<string>();
+    public Color AccentColor { get; set; } = Colors.Purple;
+
+    public void Draw(ICanvas canvas, RectF dirtyRect)
     {
-        "Молочные" => "🥛", "Напитки" => "🥤", "Мясо и рыба" => "🥩",
-        "Овощи и фрукты" => "🍎", "Заморозка" => "❄", _ => "📦"
-    };
+        if (Values == null || Values.Length < 2) return;
+        canvas.StrokeSize = 3; canvas.StrokeColor = AccentColor; canvas.StrokeLineJoin = LineJoin.Round;
+        float maxVal = Values.Max(); if (maxVal == 0) maxVal = 1;
+        float stepX = dirtyRect.Width / (Values.Length - 1);
+        var path = new PathF();
+        path.MoveTo(0, dirtyRect.Height - (Values[0] / maxVal * (dirtyRect.Height - 20)));
+        for (int i = 1; i < Values.Length; i++) path.LineTo(i * stepX, dirtyRect.Height - (Values[i] / maxVal * (dirtyRect.Height - 20)));
+        var fillPath = new PathF(path); fillPath.LineTo(dirtyRect.Width, dirtyRect.Height); fillPath.LineTo(0, dirtyRect.Height); fillPath.Close();
+        canvas.FillColor = AccentColor.WithAlpha(0.2f); canvas.FillPath(fillPath);
+        canvas.DrawPath(path);
+        canvas.FillColor = Colors.White;
+        for (int i = 0; i < Values.Length; i++) canvas.FillCircle(i * stepX, dirtyRect.Height - (Values[i] / maxVal * (dirtyRect.Height - 20)), 4);
+        
+        // Подписи по X
+        canvas.FontColor = Colors.Gray; canvas.FontSize = 10;
+        for (int i = 0; i < Labels.Length; i++) canvas.DrawString(Labels[i], i * stepX - 10, dirtyRect.Height - 15, 20, 15, HorizontalAlignment.Center, VerticalAlignment.Bottom);
+    }
+}
+
+public class DonutChartDrawable : IDrawable
+{
+    public float[] Values { get; set; } = Array.Empty<float>();
+    public Color[] Colors { get; set; } = Array.Empty<Color>();
+
+    public void Draw(ICanvas canvas, RectF dirtyRect)
+    {
+        if (Values == null || Values.Length == 0) return;
+        float total = Values.Sum(); if (total == 0) return;
+        float startAngle = 0;
+        float centerX = dirtyRect.Center.X; float centerY = dirtyRect.Center.Y;
+        float radius = Math.Min(dirtyRect.Width, dirtyRect.Height) / 2;
+        float innerRadius = radius * 0.6f;
+
+        for (int i = 0; i < Values.Length; i++)
+        {
+            float sweepAngle = (Values[i] / total) * 360;
+            canvas.FillColor = Colors[i % Colors.Length];
+            var path = new PathF();
+            path.MoveTo(centerX, centerY);
+            path.AddArc(centerX - radius, centerY - radius, radius * 2, radius * 2, startAngle, sweepAngle, false);
+            path.Close();
+            canvas.FillPath(path);
+            startAngle += sweepAngle;
+        }
+        canvas.FillColor = Color.FromArgb("#1C1C22"); 
+        canvas.FillCircle(centerX, centerY, innerRadius);
+    }
 }
