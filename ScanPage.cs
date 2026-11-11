@@ -293,62 +293,73 @@ if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
     }
 
     private ScrollView BuildConfirmView()
-    {
-        _productImage = new Image { HeightRequest = 180, Aspect = Aspect.AspectFit, IsVisible = false };
-        _noPhotoLabel = new Label { Text = "Нет фото товара", FontSize = 14, TextColor = Colors.Gray, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
-
-        var photoGrid = new Grid { HeightRequest = 180 };
-        photoGrid.Add(_noPhotoLabel);
-        photoGrid.Add(_productImage);
-
-        var photoBorder = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 8, Content = photoGrid };
-        photoBorder.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
-        photoBorder.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
-
-var captureBtn = new Button 
-{ 
-    Text = "Сфоткать упаковку", 
-    BackgroundColor = Colors.Transparent, 
-    TextColor = ThemeManager.AccentColor, 
-    BorderColor = ThemeManager.AccentColor, 
-    BorderWidth = 1, 
-    CornerRadius = 10, 
-    HeightRequest = 40,
-    Margin = new Thickness(0, 0, 0, 10)
-};
-
-captureBtn.Clicked += async (_, _) =>
 {
-    var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
-    if (imgService == null) return; // <-- ЗАЩИТА ОТ NULL
-    var path = await imgService.CaptureOwnPhotoAsync(_current.Serial ?? _current.Barcode ?? "unknown");
-        _gtinLabel = new Label { FontSize = 12 };
-        ThemeManager.BindText(_gtinLabel, secondary: true);
+    _productImage = new Image { HeightRequest = 180, Aspect = Aspect.AspectFit, IsVisible = false };
+    _noPhotoLabel = new Label { Text = "Нет фото товара", FontSize = 14, TextColor = Colors.Gray, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
 
-        _nameEntry = CreateEntry("Название");
-        _brandEntry = CreateEntry("Бренд");
-        _volumeEntry = CreateEntry("Объём (0.5 л)");
+    var photoGrid = new Grid { HeightRequest = 180 };
+    photoGrid.Add(_noPhotoLabel);
+    photoGrid.Add(_productImage);
 
-        _categoryPicker = new Picker { Title = "Категория" };
-        _categoryPicker.ItemsSource = new List<string> { "Молочные", "Напитки", "Мясо и рыба", "Овощи и фрукты", "Заморозка", "Другое" };
-        _categoryPicker.SelectedIndex = 5;
+    var photoBorder = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 8, Content = photoGrid };
+    photoBorder.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+    photoBorder.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
 
-        _datePicker = new DatePicker { Date = DateTime.Today.AddDays(7) };
+    var captureBtn = new Button 
+    { 
+        Text = "Сфоткать упаковку", 
+        BackgroundColor = Colors.Transparent, 
+        TextColor = ThemeManager.AccentColor, 
+        BorderColor = ThemeManager.AccentColor, 
+        BorderWidth = 1, 
+        CornerRadius = 10, 
+        HeightRequest = 40,
+        Margin = new Thickness(0, 0, 0, 10)
+    };
 
-        var saveBtn = new Button { Text = "Сохранить", CornerRadius = 14, HeightRequest = 56, Margin = new Thickness(0, 8, 0, 0) };
-        saveBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
-        saveBtn.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
-        saveBtn.Clicked += OnSave;
-
-        return new ScrollView
-{
-    Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, captureBtn, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } }
-};
- }       
-    private Entry CreateEntry(string placeholder)
+    captureBtn.Clicked += async (_, _) =>
     {
-        var e = new Entry { Placeholder = placeholder, HeightRequest = 50 };
-        ThemeManager.BindEntry(e);
-        return e;
-    }
+        var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
+        if (imgService == null) return; 
+        
+        var path = await imgService.CaptureOwnPhotoAsync(_current.Serial ?? _current.Barcode ?? "unknown");
+        
+        if (path != null)
+        {
+            _current.LocalImagePath = path;
+            _productImage.Source = ImageSource.FromFile(path);
+            _productImage.IsVisible = true;
+            _noPhotoLabel.IsVisible = false;
+        }
+    }; // <--- ВОТ ЭТА СКОБКА БЫЛА ПРОПУЩЕНА! ОНА ЗАКРЫВАЕТ СОБЫТИЕ КЛИКА.
+
+    _gtinLabel = new Label { FontSize = 12 };
+    ThemeManager.BindText(_gtinLabel, secondary: true);
+
+    _nameEntry = CreateEntry("Название");
+    _brandEntry = CreateEntry("Бренд");
+    _volumeEntry = CreateEntry("Объём (0.5 л)");
+
+    _categoryPicker = new Picker { Title = "Категория" };
+    _categoryPicker.ItemsSource = new List<string> { "Молочные", "Напитки", "Мясо и рыба", "Овощи и фрукты", "Заморозка", "Другое" };
+    _categoryPicker.SelectedIndex = 5;
+
+    _datePicker = new DatePicker { Date = DateTime.Today.AddDays(7) };
+
+    var saveBtn = new Button { Text = "Сохранить", CornerRadius = 14, HeightRequest = 56, Margin = new Thickness(0, 8, 0, 0) };
+    saveBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
+    saveBtn.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
+    saveBtn.Clicked += OnSave;
+
+    return new ScrollView
+    {
+        Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, captureBtn, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } }
+    };
+}
+
+private Entry CreateEntry(string placeholder)
+{
+    var e = new Entry { Placeholder = placeholder, HeightRequest = 50 };
+    ThemeManager.BindEntry(e);
+    return e;
 }
