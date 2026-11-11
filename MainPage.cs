@@ -87,22 +87,25 @@ public class MainPage : ContentPage
         mainGrid.Add(new ScrollView { Content = content }, 0, 0);
         mainGrid.Add(new BottomNavBar(0, repo), 0, 1);
 
-        Content = rootGrid;
+        Content = mainGrid;
         ThemeManager.Apply();
           }
         // СВАЙПЫ НА ВСЮ СТРАНИЦУ
         protected override void OnNavigatedTo(NavigatedToEventArgs args)
 {
     base.OnNavigatedTo(args);
-    GestureRecognizers.Clear();
-    
+
+    if (Content == null) return;
+
+    Content.GestureRecognizers.Clear();
+
     var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
     swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
-    GestureRecognizers.Add(swipeL);
-    
+    Content.GestureRecognizers.Add(swipeL);
+
     var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
     swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, repo);
-    GestureRecognizers.Add(swipeR);
+    Content.GestureRecognizers.Add(swipeR);
 }
         
     
