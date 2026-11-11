@@ -82,31 +82,37 @@ public class StatisticsPage : ContentPage
         donutCard.Content = donutGrid;
         content.Children.Add(donutCard);
 
-        var costCard = CreateCard();
-        var costStack = new VerticalStackLayout { Spacing = 8 };
-        var costHeader = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
-        costHeader.Add(new Label { Text = Loc.T("CostEstimation"), FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }, 0, 0);
+        // --- ОЦЕНКА СТОИМОСТИ ---
+var costCard = CreateCard();
+var costStack = new VerticalStackLayout { Spacing = 8 };
+var costHeader = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
+costHeader.Add(new Label { Text = Loc.T("CostEstimation"), FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }, 0, 0);
 
-        _costSwitch = new Switch { IsToggled = Preferences.Default.Get("show_cost", true), OnColor = ThemeManager.AccentColor };
-        _costSwitch.Toggled += (s, e) =>
-        {
-            Preferences.Default.Set("show_cost", e.Value);
-            UpdateCostDisplay();
-        };
-        costHeader.Add(_costSwitch, 1, 0);
-        costStack.Children.Add(costHeader);
+_costSwitch = new Switch { IsToggled = Preferences.Default.Get("show_cost", true), OnColor = ThemeManager.AccentColor };
+_costSwitch.Toggled += (s, e) =>
+{
+    Preferences.Default.Set("show_cost", e.Value);
+    UpdateCostDisplay();
+};
+costHeader.Add(_costSwitch, 1, 0);
+costStack.Children.Add(costHeader);
 
-        var priceStack = new HorizontalStackLayout { Spacing = 8 };
-        var priceIcon = new Image { Source = "icon_wallet.png", WidthRequest = 24, HeightRequest = 24 };
-        priceIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        _lblCost = new Label { Text = "≈ 0 ₽", FontSize = 22, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center };
-        ThemeManager.BindText(_lblCost);
-        priceStack.Children.Add(priceIcon); priceStack.Children.Add(_lblCost);
-        costStack.Children.Add(priceStack);
+var priceStack = new HorizontalStackLayout { Spacing = 8 };
+var priceIcon = new Image { Source = "icon_wallet.png", WidthRequest = 24, HeightRequest = 24 };
+priceIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+_lblCost = new Label { Text = "≈ 0 ₽", FontSize = 22, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center };
+ThemeManager.BindText(_lblCost);
+priceStack.Children.Add(priceIcon); priceStack.Children.Add(_lblCost);
+costStack.Children.Add(priceStack);
 
-        costStack.Children.Add(new Label { Text = Loc.T("CostWarning"), FontSize = 10, TextColor = Colors.Gray });
-        costCard.Content = costStack;
-        content.Children.Add(costCard);
+// ДОБАВЛЯЕМ ГРАФИК РАСХОДОВ
+var costChartView = new GraphicsView { HeightRequest = 60, Margin = new Thickness(0, 0, 0, 10) };
+costChartView.Drawable = new CostChartDrawable { AccentColor = ThemeManager.AccentColor };
+costStack.Children.Add(costChartView);
+
+costStack.Children.Add(new Label { Text = Loc.T("CostWarning"), FontSize = 10, TextColor = Colors.Gray });
+costCard.Content = costStack;
+content.Children.Add(costCard);
 
         var nearCard = CreateCard();
         var nearStack = new VerticalStackLayout { Spacing = 10 };
@@ -132,11 +138,11 @@ public class StatisticsPage : ContentPage
         GestureRecognizers.Clear();
 
         var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, _repo);
+        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(4, _repo); // Вправо на аккаунт
         GestureRecognizers.Add(swipeL);
 
         var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, _repo);
+        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, _repo); // Влево на магазин
         GestureRecognizers.Add(swipeR);
     }
 
@@ -173,7 +179,7 @@ public class StatisticsPage : ContentPage
         _lblOnTime.Text = filtered.Count > 0 ? $"{(filtered.Count(p => p.ExpiryDate >= now) * 100 / filtered.Count)}%" : "0%";
         _lblExpired.Text = filtered.Count(p => p.ExpiryDate < now).ToString();
 
-        // Пункт 4: Линейный график с подписями
+        // Линейный график с подписями
         var lineDrawable = new LineChartDrawable { AccentColor = ThemeManager.AccentColor };
         if (_currentPeriod == 0)
         {
@@ -191,13 +197,15 @@ public class StatisticsPage : ContentPage
         _lineChartView.Drawable = lineDrawable;
         _lineChartView.Invalidate();
 
-        // Пункт 3: Круговая диаграмма
+        // Круговая диаграмма
         var catGroups = filtered.GroupBy(p => p.Category).OrderByDescending(g => g.Count()).Take(4).ToList();
-        var donutDrawable = new DonutChartDrawable
-        {
-            Values = catGroups.Select(g => (float)g.Count()).ToArray(),
-            Colors = new[] { Color.FromArgb("#A978F5"), Color.FromArgb("#3978F6"), Color.FromArgb("#F08A35"), Color.FromArgb("#25B99A") }
-        };
+       
+var donutDrawable = new DonutChartDrawable
+{
+    Values = catGroups.Select(g => (float)g.Count()).ToArray(),
+    Colors = new[] { Color.FromArgb("#A978F5"), Color.FromArgb("#3978F6"), Color.FromArgb("#F08A35"), Color.FromArgb("#25B99A") },
+    BackgroundColor = (Color)Application.Current!.Resources[ThemeManager.Surface] // <--- ДОБАВИТЬ
+};
         _donutChartView.Drawable = donutDrawable;
         _donutChartView.Invalidate();
 
@@ -258,62 +266,4 @@ public class StatisticsPage : ContentPage
     }
 
     private string GetEmoji(string cat) => cat switch { "Молочные" => "🥛", "Напитки" => "🥤", "Мясо и рыба" => "🥩", "Овощи и фрукты" => "🍎", "Заморозка" => "❄", _ => "📦" };
-}
-
-// --- КЛАССЫ ДЛЯ РИСОВАНИЯ ГРАФИКОВ ---
-public class LineChartDrawable : IDrawable
-{
-    public float[] Values { get; set; } = Array.Empty<float>();
-    public string[] Labels { get; set; } = Array.Empty<string>();
-    public Color AccentColor { get; set; } = Colors.Purple;
-
-    public void Draw(ICanvas canvas, RectF dirtyRect)
-    {
-        if (Values == null || Values.Length < 2) return;
-        canvas.StrokeSize = 3; canvas.StrokeColor = AccentColor; canvas.StrokeLineJoin = LineJoin.Round;
-        float maxVal = Values.Max(); if (maxVal == 0) maxVal = 1;
-        float stepX = dirtyRect.Width / (Values.Length - 1);
-        var path = new PathF();
-        path.MoveTo(0, dirtyRect.Height - (Values[0] / maxVal * (dirtyRect.Height - 20)));
-        for (int i = 1; i < Values.Length; i++) path.LineTo(i * stepX, dirtyRect.Height - (Values[i] / maxVal * (dirtyRect.Height - 20)));
-        var fillPath = new PathF(path); fillPath.LineTo(dirtyRect.Width, dirtyRect.Height); fillPath.LineTo(0, dirtyRect.Height); fillPath.Close();
-        canvas.FillColor = AccentColor.WithAlpha(0.2f); canvas.FillPath(fillPath);
-        canvas.DrawPath(path);
-        canvas.FillColor = Colors.White;
-        for (int i = 0; i < Values.Length; i++) canvas.FillCircle(i * stepX, dirtyRect.Height - (Values[i] / maxVal * (dirtyRect.Height - 20)), 4);
-
-        // Подписи по X
-        canvas.FontColor = Colors.Gray; canvas.FontSize = 10;
-        for (int i = 0; i < Labels.Length; i++) canvas.DrawString(Labels[i], i * stepX - 10, dirtyRect.Height - 15, 20, 15, HorizontalAlignment.Center, VerticalAlignment.Bottom);
-    }
-}
-
-public class DonutChartDrawable : IDrawable
-{
-    public float[] Values { get; set; } = Array.Empty<float>();
-    public Color[] Colors { get; set; } = Array.Empty<Color>();
-
-    public void Draw(ICanvas canvas, RectF dirtyRect)
-    {
-        if (Values == null || Values.Length == 0) return;
-        float total = Values.Sum(); if (total == 0) return;
-        float startAngle = 0;
-        float centerX = dirtyRect.Center.X; float centerY = dirtyRect.Center.Y;
-        float radius = Math.Min(dirtyRect.Width, dirtyRect.Height) / 2;
-        float innerRadius = radius * 0.6f;
-
-        for (int i = 0; i < Values.Length; i++)
-        {
-            float sweepAngle = (Values[i] / total) * 360;
-            canvas.FillColor = Colors[i % Colors.Length];
-            var path = new PathF();
-            path.MoveTo(centerX, centerY);
-            path.AddArc(centerX - radius, centerY - radius, radius * 2, radius * 2, startAngle, sweepAngle, false);
-            path.Close();
-            canvas.FillPath(path);
-            startAngle += sweepAngle;
-        }
-        canvas.FillColor = Color.FromArgb("#1C1C22");
-        canvas.FillCircle(centerX, centerY, innerRadius);
-    }
 }
