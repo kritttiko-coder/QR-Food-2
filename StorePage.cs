@@ -169,15 +169,18 @@ public class StorePage : ContentPage
 protected override void OnNavigatedTo(NavigatedToEventArgs args)
 {
     base.OnNavigatedTo(args);
-    GestureRecognizers.Clear();
-    
+
+    if (Content == null) return;
+
+    Content.GestureRecognizers.Clear();
+
     var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-    swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo);
-    GestureRecognizers.Add(swipeL);
-    
+    swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, _repo);
+    Content.GestureRecognizers.Add(swipeL);
+
     var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-    swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
-    GestureRecognizers.Add(swipeR);
+    swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, _repo);
+    Content.GestureRecognizers.Add(swipeR);
 }
 
     private async Task AddNewItem()
