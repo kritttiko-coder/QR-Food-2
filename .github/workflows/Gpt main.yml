@@ -1,12 +1,8 @@
 name: Build FoodExpiryApp Android APK
 
 on:
-  workflow_dispatch: {}
-  push:
-    paths:
-      - '**.csproj'
-      - '**.xaml'
-      - '.github/workflows/**'
+  workflow_dispatch:
+  
 
 permissions:
   contents: read
@@ -36,6 +32,7 @@ jobs:
             }
           }
           '@ | Set-Content -Path global.json -Encoding utf8
+
           dotnet --version
 
       - name: Install Android workload
