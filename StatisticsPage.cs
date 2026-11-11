@@ -114,7 +114,11 @@ public class StatisticsPage : ContentPage
         rootGrid.Add(scroll, 0, 0);
         rootGrid.Add(new BottomNavBar(3, _repo), 0, 1);
 
-        protected override void OnNavigatedTo(NavigatedToEventArgs args)
+        Content = rootGrid;
+        ThemeManager.Apply();
+    }
+
+protected override void OnNavigatedTo(NavigatedToEventArgs args)
 {
     base.OnNavigatedTo(args);
     GestureRecognizers.Clear();
@@ -127,8 +131,6 @@ public class StatisticsPage : ContentPage
     swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo);
     GestureRecognizers.Add(swipeR);
 }
-        await LoadDataAsync();
-    }
 
     private void UpdateCostDisplay()
     {
