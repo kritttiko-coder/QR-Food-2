@@ -19,7 +19,7 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()         
             .UseBarcodeReader()
-            .UseMauiMaps()
+          //  .UseMauiMaps()
             .UseOcr();
 
         // 2. Регистрируем наши сервисы (отдельные команды)
