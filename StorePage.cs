@@ -49,7 +49,16 @@ public class StorePage : ContentPage
         searchFrame.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
 
         // --- ОСНОВНАЯ СЕТКА (Сплит) ---
-        var mainGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(0.45, GridUnitType.Star), new ColumnDefinition(0.55, GridUnitType.Star) }, ColumnSpacing = 10, HeightRequest = 400 };
+        var mainGrid = new Grid 
+{ 
+    ColumnDefinitions = 
+    { 
+        new ColumnDefinition { Width = new GridLength(0.45, GridUnitType.Star) }, 
+        new ColumnDefinition { Width = new GridLength(0.55, GridUnitType.Star) } 
+    }, 
+    ColumnSpacing = 10, 
+    HeightRequest = 400 
+};
 
         // 1. ЛЕВАЯ ПАНЕЛЬ (Список покупок)
         var shopList = new VerticalStackLayout { Spacing = 10 };
