@@ -70,7 +70,14 @@ public class StatisticsPage : ContentPage
 
         // --- ДИАГРАММА КОЛЬЦО ---
         var donutCard = CreateCard();
-        var donutGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(0.5, GridUnitType.Star), new ColumnDefinition(0.5, GridUnitType.Star) } };
+var donutGrid = new Grid 
+{ 
+    ColumnDefinitions = 
+    { 
+        new ColumnDefinition { Width = new GridLength(0.5, GridUnitType.Star) }, 
+        new ColumnDefinition { Width = new GridLength(0.5, GridUnitType.Star) } 
+    } 
+};
         
         _donutChartView = new GraphicsView { HeightRequest = 120 };
         donutGrid.Add(_donutChartView, 0, 0);
