@@ -130,19 +130,21 @@ public class AccountPage : ContentPage
 
     // СВАЙПЫ ТЕПЕРЬ НА УРОВНЕ СТРАНИЦЫ, А НЕ GRID
     protected override void OnNavigatedTo(NavigatedToEventArgs args)
-    {
-        base.OnNavigatedTo(args);
-        
-        GestureRecognizers.Clear();
-        
-        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, _repo);
-        GestureRecognizers.Add(swipeL);
-        
-        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, _repo);
-        GestureRecognizers.Add(swipeR);
-    }
+{
+    base.OnNavigatedTo(args);
+
+    if (Content == null) return;
+
+    Content.GestureRecognizers.Clear();
+
+    var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+    swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, _repo);
+    Content.GestureRecognizers.Add(swipeL);
+
+    var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+    swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, _repo);
+    Content.GestureRecognizers.Add(swipeR);
+}
 
     private Border CreateCard()
     {
