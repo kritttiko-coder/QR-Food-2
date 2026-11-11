@@ -145,16 +145,19 @@ public class StorePage : ContentPage
         rootGrid.Add(scroll, 0, 0);
         rootGrid.Add(new BottomNavBar(1, _repo), 0, 1);
 
-        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, _repo);
-        rootGrid.GestureRecognizers.Add(swipeL);
-        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, _repo);
-        rootGrid.GestureRecognizers.Add(swipeR);
-
-        Content = rootGrid;
-        ThemeManager.Apply();
-
+        protected override void OnNavigatedTo(NavigatedToEventArgs args)
+{
+    base.OnNavigatedTo(args);
+    GestureRecognizers.Clear();
+    
+    var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+    swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo);
+    GestureRecognizers.Add(swipeL);
+    
+    var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+    swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
+    GestureRecognizers.Add(swipeR);
+}
         var userLoc = await _storeService.GetCurrentLocationAsync();
         if (userLoc != null)
         {
