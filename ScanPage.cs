@@ -189,8 +189,12 @@ public class ScanPage : ContentPage
             info = await _off.TryGetByGtinAsync(_gtin);
 
         string? localPath = null;
-        if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
-            localPath = await ProductImageService.DownloadToCacheAsync(info.ImageUrl, _serial);
+if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
+{
+    var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
+    if (imgService != null)
+        localPath = await imgService.DownloadToCacheAsync(info.ImageUrl, _serial);
+}
 
         _current = new Product
         {
