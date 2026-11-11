@@ -58,6 +58,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FoodExpiryApp-Android-APK
-          path: bin/Release/net8.0-android/publish/*.apk
+          path: bin/Release/net8.0-android/publish/*-Signed.apk
           if-no-files-found: error
           retention-days: 14
