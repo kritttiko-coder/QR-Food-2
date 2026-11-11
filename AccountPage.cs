@@ -7,11 +7,26 @@ namespace FoodExpiryApp;
 
 public class AccountPage : ContentPage
 {
+    private readonly ProductRepository _repo;
+
     public AccountPage(ProductRepository repo)
     {
+        _repo = repo;
         Title = Loc.T("Account");
         ThemeManager.BindPage(this);
+        BuildUI();
+    }
 
+    //  Добавили OnAppearing, чтобы цвета обновлялись сразу
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        Content = null;
+        BuildUI();
+    }
+
+    private void BuildUI()
+    {
         var content = new VerticalStackLayout { Padding = 16, Spacing = 16 };
 
         // Шапка
@@ -21,7 +36,7 @@ public class AccountPage : ContentPage
         
         var gear = new Image { Source = "icon_gear.png", WidthRequest = 24, HeightRequest = 24 };
         gear.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        gear.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new SettingsPage(repo))) });
+        gear.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PushAsync(new SettingsPage(_repo))) });
         
         header.Add(title, 0, 0); header.Add(gear, 1, 0);
         content.Children.Add(header);
@@ -30,7 +45,6 @@ public class AccountPage : ContentPage
         var profileBorder = CreateCard();
         var profileGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 12 };
         
-        // Аватарка (вместо эмодзи используем иконку)
         var avatarContent = new Image { Source = "icon_account.png", WidthRequest = 32, HeightRequest = 32 };
         avatarContent.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         var avatar = new Border { 
@@ -86,70 +100,48 @@ public class AccountPage : ContentPage
         var moreWrap = CreateCard(); moreWrap.Content = moreList; moreWrap.Padding = 0;
         content.Children.Add(moreWrap);
 
-        // --- Кнопка Выйти (Красивая, с иконкой) ---
-        var logoutBorder = new Border 
-        { 
-            Stroke = ThemeManager.AccentColor, 
-            StrokeThickness = 1, 
-            StrokeShape = new RoundRectangle { CornerRadius = 14 }, 
-            HeightRequest = 50, 
-            Margin = new Thickness(0, 20, 0, 0),
-            BackgroundColor = Colors.Transparent
-        };
-        
-        var logoutStack = new HorizontalStackLayout 
-        { 
-            Spacing = 8, 
-            HorizontalOptions = LayoutOptions.Center, 
-            VerticalOptions = LayoutOptions.Center 
-        };
-        
+        // Кнопка Выйти
+        var logoutBorder = new Border { Stroke = ThemeManager.AccentColor, StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 14 }, HeightRequest = 50, Margin = new Thickness(0, 20, 0, 0), BackgroundColor = Colors.Transparent };
+        var logoutStack = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
         var logoutIcon = new Image { Source = "icon_logout.png", WidthRequest = 20, HeightRequest = 20 };
         logoutIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        
-        var logoutText = new Label 
-        { 
-            Text = Loc.T("LogOut"), 
-            TextColor = ThemeManager.AccentColor, 
-            VerticalOptions = LayoutOptions.Center, 
-            FontAttributes = FontAttributes.Bold,
-            FontSize = 15
-        };
-        
-        logoutStack.Children.Add(logoutIcon);
-        logoutStack.Children.Add(logoutText);
+        var logoutText = new Label { Text = Loc.T("LogOut"), TextColor = ThemeManager.AccentColor, VerticalOptions = LayoutOptions.Center, FontAttributes = FontAttributes.Bold, FontSize = 15 };
+        logoutStack.Children.Add(logoutIcon); logoutStack.Children.Add(logoutText);
         logoutBorder.Content = logoutStack;
         
         var logoutTap = new TapGestureRecognizer();
         logoutTap.Tapped += async (_, _) => 
         {
             bool confirm = await DisplayAlert("Выход", "Вы уверены, что хотите выйти?", "Да", "Отмена");
-            if (confirm)
-            {
-                // Логика выхода
-            }
+            if (confirm) { /* Логика выхода */ }
         };
         logoutBorder.GestureRecognizers.Add(logoutTap);
-        
         content.Children.Add(logoutBorder);
 
         var scroll = new ScrollView { Content = content };
         
         var rootGrid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
         rootGrid.Add(scroll, 0, 0);
-        rootGrid.Add(new BottomNavBar(4, repo), 0, 1);
-
-        // Свайпы
-        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, repo);
-        rootGrid.GestureRecognizers.Add(swipeL);
-        
-        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
-        rootGrid.GestureRecognizers.Add(swipeR);
+        rootGrid.Add(new BottomNavBar(4, _repo), 0, 1);
 
         Content = rootGrid;
         ThemeManager.Apply();
+    }
+
+    // СВАЙПЫ ТЕПЕРЬ НА УРОВНЕ СТРАНИЦЫ, А НЕ GRID
+    protected override void OnNavigatedTo(NavigatedToEventArgs args)
+    {
+        base.OnNavigatedTo(args);
+        
+        GestureRecognizers.Clear();
+        
+        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, _repo);
+        GestureRecognizers.Add(swipeL);
+        
+        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, _repo);
+        GestureRecognizers.Add(swipeR);
     }
 
     private Border CreateCard()
