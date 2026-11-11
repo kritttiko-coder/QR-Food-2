@@ -101,7 +101,7 @@ public class MainPage : ContentPage
     swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, repo);
     GestureRecognizers.Add(swipeR);
 }
-        Content = mainGrid;
+        
     }
 
     private Border CreateActionButton(string icon, string text, Color bg, Color textColor)
