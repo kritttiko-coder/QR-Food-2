@@ -18,14 +18,29 @@ public class MainPage : ContentPage
     private Image? densityImage;
 
     public MainPage(ProductRepository repository)
+{
+    repo = repository;
+    Title = Loc.T("MyProducts");
+    Padding = 0;
+
+    try
     {
-        repo = repository;
-        Title = Loc.T("MyProducts");
-        Padding = 0;
         ThemeManager.Apply();
         ThemeManager.BindPage(this);
         BuildInterface();
     }
+    catch (Exception ex)
+    {
+        // Если BuildInterface() падает, мы увидим текст ошибки на экране, а не просто вылет
+        Content = new Label 
+        { 
+            Text = $"ОШИБКА ИНИЦИАЛИЗАЦИИ:\n\n{ex.Message}\n\n{ex.StackTrace}", 
+            TextColor = Colors.Red, 
+            Padding = 20,
+            FontSize = 12
+        };
+    }
+}
 
     private void BuildInterface()
     {
@@ -107,28 +122,36 @@ public class MainPage : ContentPage
     }
 
     protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-        ThemeManager.Apply();
+{
+    base.OnAppearing();
 
+    try
+    {
+        ThemeManager.Apply();
+        
         if (densityImage != null)
         {
             densityImage.Behaviors.Clear();
             densityImage.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         }
 
-        try
-        {
-            all = await repo.All();
-            Render();
-        }
-        catch (Exception ex)
-        {
-            cards.Children.Clear();
-            var error = new Label { Text = "Не удалось загрузить продукты:\n" + ex.Message, FontSize = 14, TextColor = Color.FromArgb("#FF6878") };
-            cards.Children.Add(error);
-        }
+        all = await repo.All();
+        Render();
     }
+    catch (Exception ex)
+    {
+        // Если база данных падает (например, нет новых колонок), мы увидим это
+        cards.Children.Clear();
+        var error = new Label 
+        { 
+            Text = "Ошибка БД:\n" + ex.ToString(), 
+            FontSize = 12, 
+            TextColor = Color.FromArgb("#FF6878"),
+            Margin = new Thickness(20)
+        };
+        cards.Children.Add(error);
+    }
+}
 
     private void Render()
     {
