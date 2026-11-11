@@ -9,7 +9,6 @@ public class BottomNavBar : ContentView
 {
     public BottomNavBar(int currentTab, ProductRepository repo)
     {
-        // 1. Корневая сетка с 5 колонками. Разрешаем выход за границы.
         var rootGrid = new Grid
         {
             ColumnDefinitions = { 
@@ -20,7 +19,6 @@ public class BottomNavBar : ContentView
             IsClippedToBounds = false
         };
 
-        // 2. Сетка для обычных кнопок (внутри панели)
         var navGrid = new Grid
         {
             ColumnDefinitions = { 
@@ -36,7 +34,7 @@ public class BottomNavBar : ContentView
 
         for (int i = 0; i < 5; i++)
         {
-            if (i == 2) continue; // Пропускаем колонку для QR, её добавим отдельно
+            if (i == 2) continue; 
 
             int arrayIndex = i > 2 ? i - 1 : i;
             int tabIndex = i; 
@@ -44,12 +42,7 @@ public class BottomNavBar : ContentView
             bool isSelected = tabIndex == currentTab;
             Color color = isSelected ? ThemeManager.AccentColor : Color.FromArgb("#888888");
 
-            var stack = new VerticalStackLayout 
-            { 
-                Spacing = 2, 
-                HorizontalOptions = LayoutOptions.Center, 
-                VerticalOptions = LayoutOptions.Center 
-            };
+            var stack = new VerticalStackLayout { Spacing = 2, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
             
             var img = new Image { Source = icons[arrayIndex], WidthRequest = 24, HeightRequest = 24 };
             img.Behaviors.Add(new IconTintColorBehavior { TintColor = color });
@@ -59,41 +52,43 @@ public class BottomNavBar : ContentView
             stack.Children.Add(img);
             stack.Children.Add(lbl);
 
-            var border = new Border
-            {
-                StrokeThickness = 0, 
-                BackgroundColor = Colors.Transparent,
-                Padding = new Thickness(10, 8),
-                Content = stack
-            };
+            var border = new Border { StrokeThickness = 0, BackgroundColor = Colors.Transparent, Padding = new Thickness(10, 8), Content = stack };
 
             var tap = new TapGestureRecognizer();
             tap.Tapped += (_, _) => 
             {
                 if (tabIndex == currentTab) return;
-                SwitchToTab(tabIndex, repo); 
+                
+                // Пункт 2: Шестеренка ведет в настройки
+                if (tabIndex == 3) 
+                {
+                    Application.Current!.MainPage!.Navigation.PushAsync(new SettingsPage(repo));
+                }
+                else
+                {
+                    SwitchToTab(tabIndex, repo); 
+                }
             };
             border.GestureRecognizers.Add(tap);
 
             navGrid.Add(border, i, 0);
         }
 
-        // 3. Панель с акцентной обводкой
         var bgColor = (Color)Application.Current!.Resources[ThemeManager.SurfaceAlt];
         var transparentBg = Color.FromRgba(bgColor.Red, bgColor.Green, bgColor.Blue, 0.67f);
 
         var panelBorder = new Border
         {
             BackgroundColor = transparentBg,
-            StrokeThickness = 2, // Толщина обводки
-            Stroke = ThemeManager.AccentColor, // Акцентный цвет
+            StrokeThickness = 2, 
+            Stroke = ThemeManager.AccentColor, 
             StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24, 24, 0, 0) },
             Content = navGrid
         };
-        Grid.SetColumnSpan(panelBorder, 5); // Растягиваем на всю ширину
+        Grid.SetColumnSpan(panelBorder, 5);
         rootGrid.Add(panelBorder);
 
-        // 4. QR-кнопка поверх панели (чтобы не обрезалась)
+        // Пункт 7: Правильное центрирование QR-кнопки
         var qrBorder = new Border
         {
             WidthRequest = 64, HeightRequest = 64,
@@ -101,26 +96,32 @@ public class BottomNavBar : ContentView
             StrokeThickness = 4, Stroke = ThemeManager.AccentColor,
             BackgroundColor = Color.FromArgb("#1C1C22"),
             HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center, // Центрируем по вертикали
             Margin = new Thickness(0, -20, 0, 0), // Поднимаем вверх
-            ZIndex = 10
+            ZIndex = 10,
+            Padding = new Thickness(10) // Внутренний отступ, чтобы иконка была ровно в центре
         };
 
         var qrImg = new Image
         {
             Source = "icon_qr_code_scanner.png",
-            WidthRequest = 32,
-            HeightRequest = 32
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            Aspect = Aspect.AspectFit
         };
         qrImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         qrBorder.Content = qrImg;
 
         var tapQr = new TapGestureRecognizer();
         tapQr.Tapped += async (_, _) =>
-            await Application.Current!.MainPage!.Navigation.PushAsync(new ScanPage(repo));
+        {
+            // Пункт 8: Защита от множественных окон
+            if (Application.Current!.MainPage!.Navigation.NavigationStack.LastOrDefault() is ScanPage) return;
+            await Application.Current.MainPage.Navigation.PushAsync(new ScanPage(repo));
+        };
         qrBorder.GestureRecognizers.Add(tapQr);
 
-        Grid.SetColumn(qrBorder, 2); // Ставим в центральную колонку
+        Grid.SetColumn(qrBorder, 2);
         rootGrid.Add(qrBorder);
 
         Content = rootGrid;
