@@ -58,16 +58,7 @@ public class BottomNavBar : ContentView
             tap.Tapped += (_, _) => 
             {
                 if (tabIndex == currentTab) return;
-                
-                // Пункт 2: Шестеренка ведет в настройки
-                if (tabIndex == 3) 
-                {
-                    Application.Current!.MainPage!.Navigation.PushAsync(new SettingsPage(repo));
-                }
-                else
-                {
-                    SwitchToTab(tabIndex, repo); 
-                }
+                SwitchToTab(tabIndex, repo); 
             };
             border.GestureRecognizers.Add(tap);
 
@@ -88,7 +79,6 @@ public class BottomNavBar : ContentView
         Grid.SetColumnSpan(panelBorder, 5);
         rootGrid.Add(panelBorder);
 
-        // Пункт 7: Правильное центрирование QR-кнопки
         var qrBorder = new Border
         {
             WidthRequest = 64, HeightRequest = 64,
@@ -96,10 +86,10 @@ public class BottomNavBar : ContentView
             StrokeThickness = 4, Stroke = ThemeManager.AccentColor,
             BackgroundColor = Color.FromArgb("#1C1C22"),
             HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center, // Центрируем по вертикали
-            Margin = new Thickness(0, -20, 0, 0), // Поднимаем вверх
+            VerticalOptions = LayoutOptions.Center, 
+            Margin = new Thickness(0, -20, 0, 0), 
             ZIndex = 10,
-            Padding = new Thickness(10) // Внутренний отступ, чтобы иконка была ровно в центре
+            Padding = new Thickness(10) 
         };
 
         var qrImg = new Image
@@ -115,7 +105,6 @@ public class BottomNavBar : ContentView
         var tapQr = new TapGestureRecognizer();
         tapQr.Tapped += async (_, _) =>
         {
-            // Пункт 8: Защита от множественных окон
             if (Application.Current!.MainPage!.Navigation.NavigationStack.LastOrDefault() is ScanPage) return;
             await Application.Current.MainPage.Navigation.PushAsync(new ScanPage(repo));
         };
@@ -133,7 +122,7 @@ public class BottomNavBar : ContentView
         {
             0 => new MainPage(repo),
             1 => new StorePage(repo),
-            3 => new StatisticsPage(repo),
+            3 => new StatisticsPage(repo), 
             4 => new AccountPage(repo),
             _ => new MainPage(repo)
         };
