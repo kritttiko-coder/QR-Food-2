@@ -116,6 +116,7 @@ public class StatisticsPage : ContentPage
 
         Content = rootGrid;
         ThemeManager.Apply();
+        await LoadDataAsync();
     }
 
 protected override void OnNavigatedTo(NavigatedToEventArgs args)
