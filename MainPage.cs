@@ -88,14 +88,19 @@ public class MainPage : ContentPage
         mainGrid.Add(new BottomNavBar(0, repo), 0, 1);
 
         // СВАЙПЫ НА ВСЮ СТРАНИЦУ
-        var swipeLeft = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeLeft.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
-        mainGrid.GestureRecognizers.Add(swipeLeft);
-
-        var swipeRight = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeRight.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, repo);
-        mainGrid.GestureRecognizers.Add(swipeRight);
-
+        protected override void OnNavigatedTo(NavigatedToEventArgs args)
+{
+    base.OnNavigatedTo(args);
+    GestureRecognizers.Clear();
+    
+    var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+    swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
+    GestureRecognizers.Add(swipeL);
+    
+    var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+    swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, repo);
+    GestureRecognizers.Add(swipeR);
+}
         Content = mainGrid;
     }
 
