@@ -16,7 +16,9 @@ public class BottomNavBar : ContentView
                 new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star),
                 new ColumnDefinition(GridLength.Star) 
             },
-            Padding = new Thickness(0, 8, 0, 16)
+            Padding = new Thickness(0, 8, 0, 16),
+            // РАЗРЕШАЕМ ЭЛЕМЕНТАМ ВЫХОДИТЬ ЗА ГРАНИЦЫ
+            IsClippedToBounds = false
         };
 
         // Иконки и подписи для 4-х обычных кнопок (без QR)
@@ -37,15 +39,18 @@ public class BottomNavBar : ContentView
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
                     Margin = new Thickness(0, -20, 0, 0),
-                    ZIndex = 10
+                    ZIndex = 10,
+                    IsClippedToBounds = false // Чтобы внутренности кнопки не обрезались
                 };
 
                 var qrImg = new Image
                 {
-                    Source = "icon_qr_code_scanner.png",
+                    Source = "icon_qr_code_scanner.png", // Твой файл
                     WidthRequest = 32,
                     HeightRequest = 32
                 };
+                
+                // Вернул тонировку, раз файл точно есть
                 qrImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
                 qrBorder.Content = qrImg;
 
@@ -106,10 +111,13 @@ public class BottomNavBar : ContentView
         Content = new Border
         {
             BackgroundColor = transparentBg,
-            StrokeThickness = 1, 
-            Stroke = Color.FromRgba(255, 255, 255, 0.1),
+            // АКЦЕНТНАЯ ОБВОДКА ВОКРУГ ПАНЕЛИ (толщина 2, цвет акцента)
+            StrokeThickness = 2, 
+            Stroke = ThemeManager.AccentColor,
             StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24, 24, 0, 0) },
-            Content = navGrid
+            Content = navGrid,
+            // РАЗРЕШАЕМ КРУГУ ВЫЛЕЗАТЬ ЗА ПРЕДЕЛЫ ПАНЕЛИ
+            IsClippedToBounds = false 
         };
     }
 
