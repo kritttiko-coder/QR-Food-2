@@ -62,10 +62,17 @@ public class StatisticsPage : ContentPage
         content.Children.Add(lineCard);
 
         var donutCard = CreateCard();
-        var donutGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(0.5, GridUnitType.Star), new ColumnDefinition(0.5, GridUnitType.Star) } };
+        var donutGrid = new Grid
+        {
+            ColumnDefinitions =
+            {
+                new ColumnDefinition(new GridLength(0.5, GridUnitType.Star)),
+                new ColumnDefinition(new GridLength(0.5, GridUnitType.Star))
+            }
+        };
         _donutChartView = new GraphicsView { HeightRequest = 120 };
         donutGrid.Add(_donutChartView, 0, 0);
-        
+
         var legendStack = new VerticalStackLayout { Spacing = 6, VerticalOptions = LayoutOptions.Center };
         legendStack.Children.Add(CreateLegendItem(Color.FromArgb("#A978F5"), "Молочные"));
         legendStack.Children.Add(CreateLegendItem(Color.FromArgb("#3978F6"), "Овощи/Фрукты"));
@@ -79,12 +86,12 @@ public class StatisticsPage : ContentPage
         var costStack = new VerticalStackLayout { Spacing = 8 };
         var costHeader = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         costHeader.Add(new Label { Text = Loc.T("CostEstimation"), FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }, 0, 0);
-        
+
         _costSwitch = new Switch { IsToggled = Preferences.Default.Get("show_cost", true), OnColor = ThemeManager.AccentColor };
-        _costSwitch.Toggled += (s, e) => 
-        { 
-            Preferences.Default.Set("show_cost", e.Value); 
-            UpdateCostDisplay(); 
+        _costSwitch.Toggled += (s, e) =>
+        {
+            Preferences.Default.Set("show_cost", e.Value);
+            UpdateCostDisplay();
         };
         costHeader.Add(_costSwitch, 1, 0);
         costStack.Children.Add(costHeader);
@@ -119,19 +126,19 @@ public class StatisticsPage : ContentPage
         await LoadDataAsync();
     }
 
-protected override void OnNavigatedTo(NavigatedToEventArgs args)
-{
-    base.OnNavigatedTo(args);
-    GestureRecognizers.Clear();
-    
-    var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-    swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, repo);
-    GestureRecognizers.Add(swipeL);
-    
-    var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-    swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, repo);
-    GestureRecognizers.Add(swipeR);
-}
+    protected override void OnNavigatedTo(NavigatedToEventArgs args)
+    {
+        base.OnNavigatedTo(args);
+        GestureRecognizers.Clear();
+
+        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(3, _repo);
+        GestureRecognizers.Add(swipeL);
+
+        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, _repo);
+        GestureRecognizers.Add(swipeR);
+    }
 
     private void UpdateCostDisplay()
     {
@@ -186,8 +193,8 @@ protected override void OnNavigatedTo(NavigatedToEventArgs args)
 
         // Пункт 3: Круговая диаграмма
         var catGroups = filtered.GroupBy(p => p.Category).OrderByDescending(g => g.Count()).Take(4).ToList();
-        var donutDrawable = new DonutChartDrawable 
-        { 
+        var donutDrawable = new DonutChartDrawable
+        {
             Values = catGroups.Select(g => (float)g.Count()).ToArray(),
             Colors = new[] { Color.FromArgb("#A978F5"), Color.FromArgb("#3978F6"), Color.FromArgb("#F08A35"), Color.FromArgb("#25B99A") }
         };
@@ -274,7 +281,7 @@ public class LineChartDrawable : IDrawable
         canvas.DrawPath(path);
         canvas.FillColor = Colors.White;
         for (int i = 0; i < Values.Length; i++) canvas.FillCircle(i * stepX, dirtyRect.Height - (Values[i] / maxVal * (dirtyRect.Height - 20)), 4);
-        
+
         // Подписи по X
         canvas.FontColor = Colors.Gray; canvas.FontSize = 10;
         for (int i = 0; i < Labels.Length; i++) canvas.DrawString(Labels[i], i * stepX - 10, dirtyRect.Height - 15, 20, 15, HorizontalAlignment.Center, VerticalAlignment.Bottom);
@@ -306,7 +313,7 @@ public class DonutChartDrawable : IDrawable
             canvas.FillPath(path);
             startAngle += sweepAngle;
         }
-        canvas.FillColor = Color.FromArgb("#1C1C22"); 
+        canvas.FillColor = Color.FromArgb("#1C1C22");
         canvas.FillCircle(centerX, centerY, innerRadius);
     }
 }
