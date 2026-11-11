@@ -1,9 +1,18 @@
-
-name: Build FoodExpiryApp Android APK
+ name: Build FoodExpiryApp Android APK
 
 on:
   workflow_dispatch:
-  
+  push:
+    branches:
+   #   - main
+    paths:
+   #   - '**.cs'                  # только C#-файлы
+      - '**.csproj'              # только когда меняется csproj
+      - '**.xaml'                # только XAML
+   #   - '.github/workflows/**'   # только когда меняется сам workflow
+
+permissions:
+  contents: read
 
 permissions:
   contents: read
