@@ -87,6 +87,9 @@ public class MainPage : ContentPage
         mainGrid.Add(new ScrollView { Content = content }, 0, 0);
         mainGrid.Add(new BottomNavBar(0, repo), 0, 1);
 
+        Content = rootGrid;
+        ThemeManager.Apply();
+          }
         // СВАЙПЫ НА ВСЮ СТРАНИЦУ
         protected override void OnNavigatedTo(NavigatedToEventArgs args)
 {
@@ -102,7 +105,7 @@ public class MainPage : ContentPage
     GestureRecognizers.Add(swipeR);
 }
         
-    }
+    
 
     private Border CreateActionButton(string icon, string text, Color bg, Color textColor)
     {
