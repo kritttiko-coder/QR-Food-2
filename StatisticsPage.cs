@@ -133,19 +133,21 @@ content.Children.Add(costCard);
     }
 
     protected override void OnNavigatedTo(NavigatedToEventArgs args)
-    {
-        base.OnNavigatedTo(args);
-        GestureRecognizers.Clear();
+{
+    base.OnNavigatedTo(args);
 
-        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
-        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(4, _repo); // Вправо на аккаунт
-        GestureRecognizers.Add(swipeL);
+    if (Content == null) return;
 
-        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
-        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, _repo); // Влево на магазин
-        GestureRecognizers.Add(swipeR);
-    }
+    Content.GestureRecognizers.Clear();
 
+    var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+    swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(4, _repo);
+    Content.GestureRecognizers.Add(swipeL);
+
+    var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+    swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(1, _repo);
+    Content.GestureRecognizers.Add(swipeR);
+}
     private void UpdateCostDisplay()
     {
         if (_costSwitch.IsToggled)
