@@ -331,7 +331,7 @@ if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
             _productImage.IsVisible = true;
             _noPhotoLabel.IsVisible = false;
         }
-    }; // <--- ВОТ ЭТА СКОБКА БЫЛА ПРОПУЩЕНА! ОНА ЗАКРЫВАЕТ СОБЫТИЕ КЛИКА.
+    };
 
     _gtinLabel = new Label { FontSize = 12 };
     ThemeManager.BindText(_gtinLabel, secondary: true);
@@ -362,4 +362,4 @@ private Entry CreateEntry(string placeholder)
     var e = new Entry { Placeholder = placeholder, HeightRequest = 50 };
     ThemeManager.BindEntry(e);
     return e;
-}
+};
