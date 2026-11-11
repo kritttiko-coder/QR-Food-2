@@ -10,14 +10,14 @@ namespace FoodExpiryApp;
 public class ScanPage : ContentPage
 {
     private enum ScanPhase { AwaitingCode, AwaitingPhoto, Processing, Confirming }
+    private ScanPhase _phase = ScanPhase.AwaitingCode;
 
     private readonly ProductRepository _repo;
     private readonly DataMatrixCaptureService _dm = new();
     private readonly ExpiryOcrService _ocr = new();
     private readonly OpenFoodFactsClient _off = new();
 
-    private ScanPhase _phase = ScanPhase.AwaitingCode;
-    private string? _gtin, _serial, _fullCode;
+    private string? _gtin, _serial;
     private byte[]? _expiryPhoto;
     private Product _current = new();
 
@@ -44,32 +44,10 @@ public class ScanPage : ContentPage
 
     private void BuildUI()
     {
-        // ВКЛЮЧАЕМ РЕЖИМ TryHarder И ПОДДЕРЖКУ ВСЕХ КОДОВ
-        _scanner = new CameraBarcodeReaderView 
-        { 
-            IsDetecting = false,
-            IsVisible = true,
-            Options = new BarcodeReaderOptions
-            {
-                Formats = BarcodeFormat.DataMatrix | BarcodeFormat.QrCode | BarcodeFormat.Ean13,
-                AutoRotate = true,
-                Multiple = false,
-                TryHarder = true // Важно для DataMatrix!
-            }
-        };
+        _scanner = new CameraBarcodeReaderView { IsDetecting = false, IsVisible = true, Options = new BarcodeReaderOptions { Formats = BarcodeFormat.DataMatrix | BarcodeFormat.QrCode | BarcodeFormat.Ean13, AutoRotate = true, Multiple = false, TryHarder = true } };
         _scanner.BarcodesDetected += OnBarcodeDetected;
 
-        _scannerStatus = new Label 
-        { 
-            Text = "Наведите на код Честного ЗНАКа (DataMatrix)", 
-            TextColor = Colors.White, 
-            BackgroundColor = Color.FromRgba(0,0,0,0.7),
-            Padding = 10,
-            FontSize = 14,
-            HorizontalTextAlignment = TextAlignment.Center,
-            VerticalOptions = LayoutOptions.Start,
-            Margin = new Thickness(20, 50, 20, 0)
-        };
+        _scannerStatus = new Label { Text = "Наведите на код ЧЗ", TextColor = Colors.White, BackgroundColor = Color.FromRgba(0,0,0,0.7), Padding = 10, FontSize = 14, HorizontalTextAlignment = TextAlignment.Center, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(20, 50, 20, 0) };
 
         _photoPrompt = BuildPhotoPrompt();
         _loadingView = BuildLoadingView();
@@ -82,10 +60,7 @@ public class ScanPage : ContentPage
         overlay.Add(_loadingView);
         overlay.Add(_confirmView);
 
-        var mainGrid = new Grid
-        {
-            RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) }
-        };
+        var mainGrid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
         mainGrid.Add(overlay, 0, 0);
         mainGrid.Add(new BottomNavBar(0, _repo), 0, 1);
 
@@ -97,60 +72,34 @@ public class ScanPage : ContentPage
     {
         base.OnAppearing();
         var status = await Permissions.RequestAsync<Permissions.Camera>();
-        if (status != PermissionStatus.Granted)
-        {
-            await DisplayAlert("Ошибка", "Нужно разрешение на камеру", "OK");
-            await Navigation.PopAsync();
-            return;
-        }
+        if (status != PermissionStatus.Granted) { await DisplayAlert("Ошибка", "Нужно разрешение на камеру", "OK"); await Navigation.PopAsync(); return; }
         _phase = ScanPhase.AwaitingCode;
         UpdateVisibility();
     }
 
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        _scanner.IsDetecting = false; 
-    }
+    protected override void OnDisappearing() { base.OnDisappearing(); _scanner.IsDetecting = false; }
 
     private void OnBarcodeDetected(object? sender, BarcodeDetectionEventArgs e)
     {
         if (_phase != ScanPhase.AwaitingCode) return;
-
-        // Берем первый попавшийся код, чтобы показать пользователю, что камера ВООБЩЕ что-то видит
         var hit = e.Results.FirstOrDefault();
         if (hit == null) return;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Показываем, что нашли (для отладки)
-            var text = hit.Value.Length > 20 ? hit.Value.Substring(0, 20) + "..." : hit.Value;
-            _scannerStatus.Text = $"Найден {hit.Format}:\n{text}";
-
-            // Пытаемся распарсить как ЧЗ
             var parsed = _dm.TryParse(hit.Value);
             if (parsed != null)
             {
                 _gtin = parsed.Value.Gtin;
                 _serial = parsed.Value.Serial;
-                _fullCode = parsed.Value.FullCode;
-
                 _scannerStatus.Text = $"Код ЧЗ распознан!\nGTIN: {_gtin}";
                 _scanner.IsDetecting = false;
-                
-                // Задержка 1 сек, чтобы пользователь увидел успех
-                Task.Delay(1000).ContinueWith(_ => 
-                {
-                    MainThread.BeginInvokeOnMainThread(() => 
-                    {
-                        _phase = ScanPhase.AwaitingPhoto;
-                        UpdateVisibility();
-                    });
-                });
+                Task.Delay(800).ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => { _phase = ScanPhase.AwaitingPhoto; UpdateVisibility(); }));
             }
         });
     }
 
+    // Пункт 9: Пропуск кода и переход сразу к фото
     private void OnSkipCode(object? s, EventArgs e)
     {
         _scanner.IsDetecting = false;
@@ -177,37 +126,19 @@ public class ScanPage : ContentPage
     private async Task ProcessAsync()
     {
         DateTime? expiry = null;
-        try
-        {
-            if (_expiryPhoto != null)
-                expiry = await _ocr.ReadFromPhotoAsync(_expiryPhoto);
-        }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"OCR Error: {ex.Message}"); }
+        try { if (_expiryPhoto != null) expiry = await _ocr.ReadFromPhotoAsync(_expiryPhoto); } catch { }
 
         ProductInfo? info = null;
-        if (!string.IsNullOrEmpty(_gtin))
-            info = await _off.TryGetByGtinAsync(_gtin);
+        if (!string.IsNullOrEmpty(_gtin)) info = await _off.TryGetByGtinAsync(_gtin);
 
         string? localPath = null;
-if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
-{
-    var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
-    if (imgService != null)
-        localPath = await imgService.DownloadToCacheAsync(info.ImageUrl, _serial);
-}
-
-        _current = new Product
+        if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
         {
-            Name = info?.Name ?? "",
-            Brand = info?.Brand ?? "",
-            Volume = info?.Volume ?? "",
-            Barcode = _gtin ?? "",
-            Gtin = _gtin,
-            Serial = _serial,
-            ExpiryDate = expiry ?? DateTime.Today.AddDays(7),
-            RemoteImageUrl = info?.ImageUrl,
-            LocalImagePath = localPath
-        };
+            var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
+            if (imgService != null) localPath = await imgService.DownloadToCacheAsync(info.ImageUrl, _serial);
+        }
+
+        _current = new Product { Name = info?.Name ?? "", Brand = info?.Brand ?? "", Volume = info?.Volume ?? "", Barcode = _gtin ?? "", Gtin = _gtin, Serial = _serial, ExpiryDate = expiry ?? DateTime.Today.AddDays(7), RemoteImageUrl = info?.ImageUrl, LocalImagePath = localPath };
 
         _nameEntry.Text = _current.Name;
         _brandEntry.Text = _current.Brand;
@@ -215,17 +146,8 @@ if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
         _datePicker.Date = _current.ExpiryDate;
         _gtinLabel.Text = $"GTIN: {_gtin}\nSerial: {_serial}";
 
-        if (_current.HasLocalImage)
-        {
-            _productImage.Source = ImageSource.FromFile(_current.LocalImagePath);
-            _productImage.IsVisible = true;
-            _noPhotoLabel.IsVisible = false;
-        }
-        else
-        {
-            _productImage.IsVisible = false;
-            _noPhotoLabel.IsVisible = true;
-        }
+        if (_current.HasLocalImage) { _productImage.Source = ImageSource.FromFile(_current.LocalImagePath); _productImage.IsVisible = true; _noPhotoLabel.IsVisible = false; }
+        else { _productImage.IsVisible = false; _noPhotoLabel.IsVisible = true; }
 
         _phase = ScanPhase.Confirming;
         UpdateVisibility();
@@ -251,117 +173,68 @@ if (info?.ImageUrl != null && !string.IsNullOrEmpty(_serial))
         _loadingView.IsVisible = _phase == ScanPhase.Processing;
         _confirmView.IsVisible = _phase == ScanPhase.Confirming;
         
-        if (_phase == ScanPhase.AwaitingCode) 
-        {
-            _scannerStatus.Text = "Наведите на код Честного ЗНАКа (DataMatrix)";
-            _scanner.IsDetecting = true;
-        }
+        if (_phase == ScanPhase.AwaitingCode) { _scannerStatus.Text = "Наведите на код ЧЗ"; _scanner.IsDetecting = true; }
     }
 
     private VerticalStackLayout BuildPhotoPrompt()
     {
         var title = new Label { Text = "Код распознан (или пропущен)", FontSize = 22, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
-        var subtitle = new Label { Text = "Сфотографируйте срок годности (желательно крупно)", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
+        var subtitle = new Label { Text = "Сфотографируйте срок годности", FontSize = 16, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center };
 
         var btn = new Button { Text = "📷 Сфотографировать дату", CornerRadius = 14, HeightRequest = 56, HorizontalOptions = LayoutOptions.Fill, Margin = new Thickness(0, 16, 0, 0) };
         btn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
         btn.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
         btn.Clicked += OnTakeExpiryPhoto;
 
-        return new VerticalStackLayout
-        {
-            Spacing = 12, Padding = 24,
-            VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.8),
-            Children = { title, subtitle, btn }
-        };
+        // Пункт 9: Кнопка "Пропустить"
+        var skipBtn = new Button { Text = "Пропустить код", BackgroundColor = Colors.Transparent, TextColor = Colors.Gray, HeightRequest = 40, Margin = new Thickness(0, 8, 0, 0) };
+        skipBtn.Clicked += OnSkipCode;
+
+        return new VerticalStackLayout { Spacing = 12, Padding = 24, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center, BackgroundColor = Color.FromRgba(0, 0, 0, 0.8), Children = { title, subtitle, btn, skipBtn } };
     }
 
-    private VerticalStackLayout BuildLoadingView()
-    {
-        return new VerticalStackLayout
-        {
-            Spacing = 16, Padding = 24,
-            VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
-            BackgroundColor = Color.FromRgba(0, 0, 0, 0.85),
-            Children =
-            {
-                new ActivityIndicator { IsRunning = true, Color = ThemeManager.AccentColor, HeightRequest = 48, WidthRequest = 48 },
-                new Label { Text = "Ищем дату на фото...", FontSize = 15, TextColor = Colors.White, HorizontalTextAlignment = TextAlignment.Center }
-            }
-        };
-    }
+    private VerticalStackLayout BuildLoadingView() { return new VerticalStackLayout { Spacing = 16, Padding = 24, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center, BackgroundColor = Color.FromRgba(0, 0, 0, 0.85), Children = { new ActivityIndicator { IsRunning = true, Color = ThemeManager.AccentColor, HeightRequest = 48, WidthRequest = 48 }, new Label { Text = "Ищем дату...", FontSize = 15, TextColor = Colors.White } } }; }
 
     private ScrollView BuildConfirmView()
-{
-    _productImage = new Image { HeightRequest = 180, Aspect = Aspect.AspectFit, IsVisible = false };
-    _noPhotoLabel = new Label { Text = "Нет фото товара", FontSize = 14, TextColor = Colors.Gray, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
-
-    var photoGrid = new Grid { HeightRequest = 180 };
-    photoGrid.Add(_noPhotoLabel);
-    photoGrid.Add(_productImage);
-
-    var photoBorder = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 8, Content = photoGrid };
-    photoBorder.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
-    photoBorder.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
-
-    var captureBtn = new Button 
-    { 
-        Text = "Сфоткать упаковку", 
-        BackgroundColor = Colors.Transparent, 
-        TextColor = ThemeManager.AccentColor, 
-        BorderColor = ThemeManager.AccentColor, 
-        BorderWidth = 1, 
-        CornerRadius = 10, 
-        HeightRequest = 40,
-        Margin = new Thickness(0, 0, 0, 10)
-    };
-
-    captureBtn.Clicked += async (_, _) =>
     {
-        var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
-        if (imgService == null) return; 
-        
-        var path = await imgService.CaptureOwnPhotoAsync(_current.Serial ?? _current.Barcode ?? "unknown");
-        
-        if (path != null)
+        _productImage = new Image { HeightRequest = 180, Aspect = Aspect.AspectFit, IsVisible = false };
+        _noPhotoLabel = new Label { Text = "Нет фото", FontSize = 14, TextColor = Colors.Gray, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center };
+        var photoGrid = new Grid { HeightRequest = 180 };
+        photoGrid.Add(_noPhotoLabel); photoGrid.Add(_productImage);
+
+        var photoBorder = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 8, Content = photoGrid };
+        photoBorder.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+        photoBorder.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
+
+        var captureBtn = new Button { Text = "Сфоткать упаковку", BackgroundColor = Colors.Transparent, TextColor = ThemeManager.AccentColor, BorderColor = ThemeManager.AccentColor, BorderWidth = 1, CornerRadius = 10, HeightRequest = 40, Margin = new Thickness(0, 0, 0, 10) };
+        captureBtn.Clicked += async (_, _) =>
         {
-            _current.LocalImagePath = path;
-            _productImage.Source = ImageSource.FromFile(path);
-            _productImage.IsVisible = true;
-            _noPhotoLabel.IsVisible = false;
-        }
-    };
+            var imgService = IPlatformApplication.Current!.Services.GetService<ProductImageService>();
+            if (imgService == null) return;
+            var path = await imgService.CaptureOwnPhotoAsync(_current.Serial ?? _current.Barcode ?? "unknown");
+            if (path != null) { _current.LocalImagePath = path; _productImage.Source = ImageSource.FromFile(path); _productImage.IsVisible = true; _noPhotoLabel.IsVisible = false; }
+        };
 
-    _gtinLabel = new Label { FontSize = 12 };
-    ThemeManager.BindText(_gtinLabel, secondary: true);
+        _gtinLabel = new Label { FontSize = 12 };
+        ThemeManager.BindText(_gtinLabel, secondary: true);
 
-    _nameEntry = CreateEntry("Название");
-    _brandEntry = CreateEntry("Бренд");
-    _volumeEntry = CreateEntry("Объём (0.5 л)");
+        _nameEntry = CreateEntry("Название");
+        _brandEntry = CreateEntry("Бренд");
+        _volumeEntry = CreateEntry("Объём (0.5 л)");
 
-    _categoryPicker = new Picker { Title = "Категория" };
-    _categoryPicker.ItemsSource = new List<string> { "Молочные", "Напитки", "Мясо и рыба", "Овощи и фрукты", "Заморозка", "Другое" };
-    _categoryPicker.SelectedIndex = 5;
+        _categoryPicker = new Picker { Title = "Категория" };
+        _categoryPicker.ItemsSource = new List<string> { "Молочные", "Напитки", "Мясо и рыба", "Овощи и фрукты", "Заморозка", "Другое" };
+        _categoryPicker.SelectedIndex = 5;
 
-    _datePicker = new DatePicker { Date = DateTime.Today.AddDays(7) };
+        _datePicker = new DatePicker { Date = DateTime.Today.AddDays(7) };
 
-    var saveBtn = new Button { Text = "Сохранить", CornerRadius = 14, HeightRequest = 56, Margin = new Thickness(0, 8, 0, 0) };
-    saveBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
-    saveBtn.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
-    saveBtn.Clicked += OnSave;
+        var saveBtn = new Button { Text = "Сохранить", CornerRadius = 14, HeightRequest = 56, Margin = new Thickness(0, 8, 0, 0) };
+        saveBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Accent);
+        saveBtn.SetDynamicResource(Button.TextColorProperty, ThemeManager.AccentText);
+        saveBtn.Clicked += OnSave;
 
-    return new ScrollView
-    {
-        Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, captureBtn, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } }
-    };
-}
+        return new ScrollView { Content = new VerticalStackLayout { Padding = 18, Spacing = 10, Children = { photoBorder, captureBtn, _gtinLabel, _nameEntry, _brandEntry, _volumeEntry, _categoryPicker, _datePicker, saveBtn } } };
+    }
 
-private Entry CreateEntry(string placeholder)
-{
-    var e = new Entry { Placeholder = placeholder, HeightRequest = 50 };
-    ThemeManager.BindEntry(e);
-    return e;
-}
-
+    private Entry CreateEntry(string placeholder) { var e = new Entry { Placeholder = placeholder, HeightRequest = 50 }; ThemeManager.BindEntry(e); return e; }
 }
