@@ -26,7 +26,8 @@ string[] labels = { Loc.T("Home"), Loc.T("Store"), Loc.T("Statistics"), Loc.T("A
 
 // Внутри цикла, где создается QR (i == 2):
 var qrImg = new Image { Source = "icon_camera.png", WidthRequest = 32, HeightRequest = 32 };
-
+qrImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+qrBorder.Content = qrImg;
         for (int i = 0; i < 5; i++)
         {
             if (i == 2) // Центральная кнопка QR
@@ -43,10 +44,6 @@ var qrImg = new Image { Source = "icon_camera.png", WidthRequest = 32, HeightReq
                     ZIndex = 10
                 };
                 
-                var qrImg = new Image { Source = "icon_qr.png", WidthRequest = 32, HeightRequest = 32 };
-                qrImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-                qrBorder.Content = qrImg;
-
                 var tapQr = new TapGestureRecognizer();
                 tapQr.Tapped += async (_, _) => await Application.Current!.MainPage!.Navigation.PushAsync(new ScanPage(repo));
                 qrBorder.GestureRecognizers.Add(tapQr);
