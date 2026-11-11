@@ -362,4 +362,6 @@ private Entry CreateEntry(string placeholder)
     var e = new Entry { Placeholder = placeholder, HeightRequest = 50 };
     ThemeManager.BindEntry(e);
     return e;
-};
+}
+
+}
