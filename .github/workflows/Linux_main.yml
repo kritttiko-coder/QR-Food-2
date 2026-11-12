@@ -1,4 +1,4 @@
-name: Build FoodExpiryApp
+name: Build FoodExpiryApp on Linux
 
 on:
   workflow_dispatch:
