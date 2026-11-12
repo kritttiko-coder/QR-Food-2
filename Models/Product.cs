@@ -13,6 +13,8 @@ public class Product
     public string Barcode { get; set; } = "";
     public DateTime ExpiryDate { get; set; } = DateTime.Today.AddDays(7);
 
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
     //Поля для сканирования (Честный ЗНАК + OpenFoodFacts)
     public string? Gtin { get; set; }
     public string? Serial { get; set; }
