@@ -29,29 +29,34 @@ public class ProductImageService
     }
 
     public async Task<string?> CaptureOwnPhotoAsync(string key, CancellationToken ct = default)
+{
+    try
     {
-        try
+        var cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+        if (cameraStatus != PermissionStatus.Granted) return null;
+        if (!MediaPicker.Default.IsCaptureSupported) return null;
+
+        var photo = await MediaPicker.Default.CapturePhotoAsync();
+        if (photo is null) return null;
+
+        var path = PathFor(key);
+        // Создаем директорию на всякий случай
+        Directory.CreateDirectory(_dir); 
+        
+        await using (var src = await photo.OpenReadAsync())
+        await using (var dst = File.Create(path))
         {
-            if (!MediaPicker.Default.IsCaptureSupported) return null;
-            
-            var photo = await MediaPicker.Default.CapturePhotoAsync();
-            if (photo is null) return null;
-
-            var path = PathFor(key);
-            await using (var src = await photo.OpenReadAsync())
-            await using (var dst = File.Create(path))
-            {
-                await src.CopyToAsync(dst, ct);
-            }
-            return path;
+            await src.CopyToAsync(dst, ct);
         }
-        catch 
-        { 
-            // Сюда попадаем, если пользователь запретил камеру или произошла ошибка нативного плеера
-            return null; 
-        } 
+        return path;
     }
-
+    catch (Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine($"CaptureOwnPhoto error: {ex.Message}");
+        return null;
+    }
+}
+    
     public ImageSource? ResolveImageSource(Models.Product? product)
     {
         if (product is null) return null;
