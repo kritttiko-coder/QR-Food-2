@@ -17,8 +17,8 @@ public static class MauiProgram
         // 1. Настраиваем сам MAUI и подключаем библиотеки (цепочка Use...)
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit()         
-            .UseBarcodeReader()
+            .UseMauiCommunityToolkit()
+            .UseBarcodeScanning()   
           //  .UseMauiMaps()
             .UseOcr();
 
