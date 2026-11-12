@@ -80,11 +80,11 @@ public class StatisticsPage : ContentPage
         // --- ОЦЕНКА СТОИМОСТИ ---
         var costCard = CreateCard();
         var costStack = new VerticalStackLayout { Spacing = 8 };
-        
+
         var costHeader = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
         costHeader.Add(new Label { Text = Loc.T("CostEstimation"), FontSize = 14, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center }, 0, 0);
 
-        _costSwitch = new Switch { IsToggled = Preferences.Default.Get("show_cost", false), OnColor = ThemeManager.AccentColor }; // ✅ ВЫКЛЮЧЕН ПО УМОЛЧАНИЮ
+        _costSwitch = new Switch { IsToggled = Preferences.Default.Get("show_cost", false), OnColor = ThemeManager.AccentColor };
         _costSwitch.Toggled += (s, e) => { Preferences.Default.Set("show_cost", e.Value); UpdateCostDisplay(); };
         costHeader.Add(_costSwitch, 1, 0);
         costStack.Children.Add(costHeader);
@@ -145,63 +145,61 @@ public class StatisticsPage : ContentPage
     }
 
     private void UpdateCostDisplay()
-{
-    if (!_costSwitch.IsToggled)
     {
-        _lblCost.Text = $"≈ 0 {new PriceService().CurrencySymbol}";
-        _costChartView.Drawable = null;
+        if (!_costSwitch.IsToggled)
+        {
+            _lblCost.Text = $"≈ 0 {new PriceService().CurrencySymbol}";
+            _costChartView.Drawable = null;
+            _costChartView.Invalidate();
+            return;
+        }
+
+        var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
+
+        double totalCost = _allProducts.Sum(p => priceService.GetPrice(p));
+        _lblCost.Text = $"≈ {totalCost:N0} {priceService.CurrencySymbol}";
+
+        var costDrawable = new CostChartDrawable { AccentColor = ThemeManager.AccentColor };
+        var labels = new List<string>();
+        var values = new List<float>();
+        DateTime now = AppClock.Now;
+
+        if (_costPeriod == 0) // Неделя
+        {
+            for (int i = 6; i >= 0; i--)
+            {
+                var day = now.AddDays(-i).Date;
+                labels.Add(day.ToString("dd.MM"));
+                var dailySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Date == day).Sum(p => priceService.GetPrice(p));
+                values.Add((float)dailySum);
+            }
+        }
+        else if (_costPeriod == 1) // Месяц
+        {
+            for (int i = 3; i >= 0; i--)
+            {
+                var weekStart = now.AddDays(-i * 7).Date;
+                labels.Add($"Нед {4 - i}");
+                var weeklySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Date >= weekStart && p.ScannedAtUtc.ToLocalTime().Date < weekStart.AddDays(7)).Sum(p => priceService.GetPrice(p));
+                values.Add((float)weeklySum);
+            }
+        }
+        else // Год
+        {
+            for (int i = 11; i >= 0; i--)
+            {
+                var month = now.AddMonths(-i);
+                labels.Add(month.ToString("MMM"));
+                var monthlySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Month == month.Month && p.ScannedAtUtc.ToLocalTime().Year == month.Year).Sum(p => priceService.GetPrice(p));
+                values.Add((float)monthlySum);
+            }
+        }
+
+        costDrawable.Values = values.ToArray();
+        costDrawable.Labels = labels.ToArray();
+        _costChartView.Drawable = costDrawable;
         _costChartView.Invalidate();
-        return;
     }
-
-    var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
-    
-    // Считаем РЕАЛЬНУЮ сумму затрат на основе добавленных продуктов
-    double totalCost = _allProducts.Sum(p => priceService.GetPrice(p));
-    _lblCost.Text = $"≈ {totalCost:N0} {priceService.CurrencySymbol}";
-
-    var costDrawable = new CostChartDrawable { AccentColor = ThemeManager.AccentColor };
-    var labels = new List<string>();
-    var values = new List<float>();
-    DateTime now = AppClock.Now;
-
-    if (_costPeriod == 0) // Неделя
-    {
-        for (int i = 6; i >= 0; i--)
-        {
-            var day = now.AddDays(-i).Date;
-            labels.Add(day.ToString("dd.MM"));
-            // Сумма затрат за этот день (по локальной дате)
-            var dailySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Date == day).Sum(p => priceService.GetPrice(p));
-            values.Add((float)dailySum);
-        }
-    }
-    else if (_costPeriod == 1) // Месяц
-    {
-        for (int i = 3; i >= 0; i--)
-        {
-            var weekStart = now.AddDays(-i * 7).Date;
-            labels.Add($"Нед {4 - i}");
-            var weeklySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Date >= weekStart && p.ScannedAtUtc.ToLocalTime().Date < weekStart.AddDays(7)).Sum(p => priceService.GetPrice(p));
-            values.Add((float)weeklySum);
-        }
-    }
-    else // Год
-    {
-        for (int i = 11; i >= 0; i--)
-        {
-            var month = now.AddMonths(-i);
-            labels.Add(month.ToString("MMM"));
-            var monthlySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Month == month.Month && p.ScannedAtUtc.ToLocalTime().Year == month.Year).Sum(p => priceService.GetPrice(p));
-            values.Add((float)monthlySum);
-        }
-    }
-
-    costDrawable.Values = values.ToArray();
-    costDrawable.Labels = labels.ToArray();
-    _costChartView.Drawable = costDrawable;
-    _costChartView.Invalidate();
-}
 
     private async Task LoadDataAsync()
     {
@@ -210,124 +208,86 @@ public class StatisticsPage : ContentPage
         UpdateCostDisplay();
     }
 
-    
-private void CalculateStats()
-{
-    DateTime now = AppClock.Now;
-    DateTime threshold = _currentPeriod switch { 0 => now.AddDays(-7), 1 => now.AddDays(-30), 2 => now.AddDays(-365), _ => now.AddDays(-7) };
-    
-    // Берем продукты, которые были добавлены в выбранный период (по локальной дате)
-    var filtered = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime() >= threshold || p.ExpiryDate >= threshold).ToList();
-    if (filtered.Count == 0) filtered = _allProducts;
-
-    _lblProducts.Text = filtered.Count.ToString();
-    _lblAvgDays.Text = filtered.Count > 0 ? ((int)filtered.Average(p => (p.ExpiryDate - now).TotalDays)).ToString() : "0";
-    _lblOnTime.Text = filtered.Count > 0 ? $"{(filtered.Count(p => p.ExpiryDate >= now) * 100 / filtered.Count)}%" : "0%";
-    _lblExpired.Text = filtered.Count(p => p.ExpiryDate < now).ToString();
-
-    // --- РЕАЛЬНЫЙ ГРАФИК ПРОДУКТОВ (по дате добавления в локальном времени) ---
-    var lineDrawable = new LineChartDrawable { AccentColor = ThemeManager.AccentColor };
-    var labels = new List<string>();
-    var values = new List<float>();
-
-    if (_currentPeriod == 0) // Неделя (7 дней)
+    private void CalculateStats()
     {
-        for (int i = 6; i >= 0; i--)
+        DateTime now = AppClock.Now;
+        DateTime threshold = _currentPeriod switch { 0 => now.AddDays(-7), 1 => now.AddDays(-30), 2 => now.AddDays(-365), _ => now.AddDays(-7) };
+
+        var filtered = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime() >= threshold || p.ExpiryDate >= threshold).ToList();
+        if (filtered.Count == 0) filtered = _allProducts;
+
+        _lblProducts.Text = filtered.Count.ToString();
+        _lblAvgDays.Text = filtered.Count > 0 ? ((int)filtered.Average(p => (p.ExpiryDate - now).TotalDays)).ToString() : "0";
+        _lblOnTime.Text = filtered.Count > 0 ? $"{(filtered.Count(p => p.ExpiryDate >= now) * 100 / filtered.Count)}%" : "0%";
+        _lblExpired.Text = filtered.Count(p => p.ExpiryDate < now).ToString();
+
+        // --- ЛИНЕЙНЫЙ ГРАФИК ---
+        var lineDrawable = new LineChartDrawable { AccentColor = ThemeManager.AccentColor };
+        var lineLabels = new List<string>();
+        var lineValues = new List<float>();
+
+        if (_currentPeriod == 0) // Неделя
         {
-            var day = now.AddDays(-i).Date;
-            labels.Add(day.ToString("dd.MM"));
-            // Считаем по локальной дате
-            values.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Date == day));
+            for (int i = 6; i >= 0; i--)
+            {
+                var day = now.AddDays(-i).Date;
+                lineLabels.Add(day.ToString("dd.MM"));
+                lineValues.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Date == day));
+            }
+        }
+        else if (_currentPeriod == 1) // Месяц
+        {
+            for (int i = 3; i >= 0; i--)
+            {
+                var weekStart = now.AddDays(-i * 7).Date;
+                lineLabels.Add($"Нед {4 - i}");
+                lineValues.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Date >= weekStart && p.ScannedAtUtc.ToLocalTime().Date < weekStart.AddDays(7)));
+            }
+        }
+        else // Год
+        {
+            for (int i = 11; i >= 0; i--)
+            {
+                var month = now.AddMonths(-i);
+                lineLabels.Add(month.ToString("MMM"));
+                lineValues.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Month == month.Month && p.ScannedAtUtc.ToLocalTime().Year == month.Year));
+            }
+        }
+
+        lineDrawable.Values = lineValues.ToArray();
+        lineDrawable.Labels = lineLabels.ToArray();
+        _lineChartView.Drawable = lineDrawable;
+        _lineChartView.Invalidate();
+
+        // --- КРУГОВАЯ ДИАГРАММА ---
+        var catGroups = filtered.GroupBy(p => p.Category).OrderByDescending(g => g.Count()).Take(4).ToList();
+        var donutDrawable = new DonutChartDrawable
+        {
+            Values = catGroups.Select(g => (float)g.Count()).ToArray(),
+            Colors = new[] { Color.FromArgb("#A978F5"), Color.FromArgb("#3978F6"), Color.FromArgb("#F08A35"), Color.FromArgb("#25B99A") },
+            BackgroundColor = (Color)Application.Current!.Resources[ThemeManager.Surface]
+        };
+        _donutChartView.Drawable = donutDrawable;
+        _donutChartView.Invalidate();
+
+        // --- БЛИЖАЙШИЕ СРОКИ ---
+        _nearestList.Children.Clear();
+        var nearest = _allProducts.OrderBy(p => p.ExpiryDate).Take(3).ToList();
+        foreach (var p in nearest)
+        {
+            int daysLeft = (p.ExpiryDate.Date - now.Date).Days;
+            string daysStr = daysLeft < 0 ? Loc.T("Expired") : $"{daysLeft} дн.";
+            Color tagColor = daysLeft < 0 ? Color.FromArgb("#B00035") : daysLeft <= 3 ? Color.FromArgb("#FF414D") : daysLeft <= 7 ? Color.FromArgb("#FF962E") : Color.FromArgb("#E8C928");
+
+            var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
+            var emoji = new Label { Text = GetEmoji(p.Category), FontSize = 24, VerticalOptions = LayoutOptions.Center };
+            var name = new Label { Text = p.Name, FontSize = 14, VerticalOptions = LayoutOptions.Center };
+            ThemeManager.BindText(name);
+            var tag = new Border { StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(8, 4), BackgroundColor = tagColor, Content = new Label { Text = daysStr, TextColor = Colors.White, FontSize = 12, FontAttributes = FontAttributes.Bold } };
+            grid.Add(emoji, 0, 0); grid.Add(name, 1, 0); grid.Add(tag, 2, 0);
+            _nearestList.Children.Add(grid);
         }
     }
-    else if (_currentPeriod == 1) // Месяц (4 недели)
-    {
-        for (int i = 3; i >= 0; i--)
-        {
-            var weekStart = now.AddDays(-i * 7).Date;
-            labels.Add($"Нед {4 - i}");
-            values.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Date >= weekStart && p.ScannedAtUtc.ToLocalTime().Date < weekStart.AddDays(7)));
-        }
-    }
-    else // Год (12 месяцев)
-    {
-        for (int i = 11; i >= 0; i--)
-        {
-            var month = now.AddMonths(-i);
-            labels.Add(month.ToString("MMM"));
-            values.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Month == month.Month && p.ScannedAtUtc.ToLocalTime().Year == month.Year));
-        }
-    }
-
-    lineDrawable.Values = values.ToArray();
-    lineDrawable.Labels = labels.ToArray();
-    _lineChartView.Drawable = lineDrawable;
-    _lineChartView.Invalidate();
-
-    // Круговая диаграмма
-    var catGroups = filtered.GroupBy(p => p.Category).OrderByDescending(g => g.Count()).Take(4).ToList();
-    var donutDrawable = new DonutChartDrawable
-    {
-        Values = catGroups.Select(g => (float)g.Count()).ToArray(),
-        Colors = new[] { Color.FromArgb("#A978F5"), Color.FromArgb("#3978F6"), Color.FromArgb("#F08A35"), Color.FromArgb("#25B99A") },
-        BackgroundColor = (Color)Application.Current!.Resources[ThemeManager.Surface]
-    };
-    _donutChartView.Drawable = donutDrawable;
-    _donutChartView.Invalidate();
-
-    // Ближайшие сроки
-    _nearestList.Children.Clear();
-    var nearest = _allProducts.OrderBy(p => p.ExpiryDate).Take(3).ToList();
-    foreach (var p in nearest)
-    {
-        int daysLeft = (p.ExpiryDate.Date - now.Date).Days;
-        string daysStr = daysLeft < 0 ? Loc.T("Expired") : $"{daysLeft} дн.";
-        Color tagColor = daysLeft < 0 ? Color.FromArgb("#B00035") : daysLeft <= 3 ? Color.FromArgb("#FF414D") : daysLeft <= 7 ? Color.FromArgb("#FF962E") : Color.FromArgb("#E8C928");
-
-        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
-        var emoji = new Label { Text = GetEmoji(p.Category), FontSize = 24, VerticalOptions = LayoutOptions.Center };
-        var name = new Label { Text = p.Name, FontSize = 14, VerticalOptions = LayoutOptions.Center };
-        ThemeManager.BindText(name);
-        var tag = new Border { StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(8, 4), BackgroundColor = tagColor, Content = new Label { Text = daysStr, TextColor = Colors.White, FontSize = 12, FontAttributes = FontAttributes.Bold } };
-        grid.Add(emoji, 0, 0); grid.Add(name, 1, 0); grid.Add(tag, 2, 0);
-        _nearestList.Children.Add(grid);
-    }
-}
-
-    lineDrawable.Values = values.ToArray();
-    lineDrawable.Labels = labels.ToArray();
-    _lineChartView.Drawable = lineDrawable;
-    _lineChartView.Invalidate();
-
-    // Круговая диаграмма (тут всё было честно)
-    var catGroups = filtered.GroupBy(p => p.Category).OrderByDescending(g => g.Count()).Take(4).ToList();
-    var donutDrawable = new DonutChartDrawable
-    {
-        Values = catGroups.Select(g => (float)g.Count()).ToArray(),
-        Colors = new[] { Color.FromArgb("#A978F5"), Color.FromArgb("#3978F6"), Color.FromArgb("#F08A35"), Color.FromArgb("#25B99A") },
-        BackgroundColor = (Color)Application.Current!.Resources[ThemeManager.Surface]
-    };
-    _donutChartView.Drawable = donutDrawable;
-    _donutChartView.Invalidate();
-
-    // Ближайшие сроки
-    _nearestList.Children.Clear();
-    var nearest = _allProducts.OrderBy(p => p.ExpiryDate).Take(3).ToList();
-    foreach (var p in nearest)
-    {
-        int daysLeft = (p.ExpiryDate.Date - now.Date).Days;
-        string daysStr = daysLeft < 0 ? Loc.T("Expired") : $"{daysLeft} дн.";
-        Color tagColor = daysLeft < 0 ? Color.FromArgb("#B00035") : daysLeft <= 3 ? Color.FromArgb("#FF414D") : daysLeft <= 7 ? Color.FromArgb("#FF962E") : Color.FromArgb("#E8C928");
-
-        var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10 };
-        var emoji = new Label { Text = GetEmoji(p.Category), FontSize = 24, VerticalOptions = LayoutOptions.Center };
-        var name = new Label { Text = p.Name, FontSize = 14, VerticalOptions = LayoutOptions.Center };
-        ThemeManager.BindText(name);
-        var tag = new Border { StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(8, 4), BackgroundColor = tagColor, Content = new Label { Text = daysStr, TextColor = Colors.White, FontSize = 12, FontAttributes = FontAttributes.Bold } };
-        grid.Add(emoji, 0, 0); grid.Add(name, 1, 0); grid.Add(tag, 2, 0);
-        _nearestList.Children.Add(grid);
-    }
-}
 
     private Button CreatePeriodBtn(string text, int index, bool isActive, bool isCostBtn)
     {
