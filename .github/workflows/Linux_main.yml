@@ -1,0 +1,58 @@
+name: Build FoodExpiryApp
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Pin .NET SDK
+        run: |
+          cat << 'EOF' > global.json
+          {
+            "sdk": {
+              "version": "8.0.400",
+              "rollForward": "latestPatch",
+              "allowPrerelease": false
+            }
+          }
+          EOF
+          dotnet --version
+
+      - name: Install Android workload
+        run: dotnet workload install maui-android --skip-manifest-update
+
+      - name: Restore dependencies
+        run: |
+          dotnet restore FoodExpiryApp.csproj \
+            -p:CheckEolWorkloads=false
+
+      - name: Build APK
+        run: |
+          dotnet publish FoodExpiryApp.csproj \
+            -f net8.0-android \
+            -c Release \
+            -p:AndroidPackageFormat=apk \
+            -p:CheckEolWorkloads=false \
+            --no-restore
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FoodExpiryApp-Android-APK
+          path: bin/Release/net8.0-android/publish/*-Signed.apk
+          if-no-files-found: error
+          retention-days: 14
