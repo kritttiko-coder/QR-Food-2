@@ -339,12 +339,28 @@ public class StorePage : ContentPage
             grid.Add(brand, 0, 0); grid.Add(title, 1, 0); grid.Add(d, 2, 0);
 
             var tap = new TapGestureRecognizer();
-            tap.Tapped += async (_, _) =>
-            {
-                var location = new Location(store.Location.Latitude, store.Location.Longitude);
-                var options = new MapLaunchOptions { Name = store.Name };
-                await Map.Default.OpenAsync(location, options);
-            };
+           tap.Tapped += async (_, _) =>
+{
+    string preferredMap = Preferences.Default.Get("preferred_map", "Google");
+    var location = new Location(store.Location.Latitude, store.Location.Longitude);
+
+    if (preferredMap == "Яндекс")
+    {
+        var uri = $"https://yandex.ru/maps/?pt={location.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)},{location.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)}&z=18&l=map";
+        await Launcher.Default.OpenAsync(uri);
+    }
+    else if (preferredMap == "2GIS")
+    {
+        var uri = $"https://2gis.ru/geo/{location.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)},{location.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        await Launcher.Default.OpenAsync(uri);
+    }
+    else // Google (по умолчанию)
+    {
+        var options = new MapLaunchOptions { Name = store.Name };
+        await Map.Default.OpenAsync(location, options);
+    }
+};
+grid.GestureRecognizers.Add(tap);
             grid.GestureRecognizers.Add(tap);
             _storesListLayout.Children.Add(grid);
         }
