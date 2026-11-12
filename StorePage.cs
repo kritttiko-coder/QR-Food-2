@@ -50,7 +50,7 @@ public class StorePage : ContentPage
         var locStack = new HorizontalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
         var locImg = new Image { Source = "icon_pin.png", WidthRequest = 18, HeightRequest = 18 };
         locImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        _locText = new Label { Text = "Чита", TextColor = ThemeManager.AccentColor, VerticalOptions = LayoutOptions.Center, FontSize = 14 };
+        _locText = new Label { Text = "Поиск...", TextColor = ThemeManager.AccentColor, VerticalOptions = LayoutOptions.Center, FontSize = 14 };
         var locChevron = new Image { Source = "icon_chevron_down.png", WidthRequest = 14, HeightRequest = 14 };
         locChevron.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         locStack.Children.Add(locImg); locStack.Children.Add(_locText); locStack.Children.Add(locChevron);
@@ -77,30 +77,39 @@ public class StorePage : ContentPage
 
         // --- ОСНОВНАЯ СЕТКА (Слева список, Справа карта) ---
         var mainGrid = new Grid 
-{ 
-    ColumnDefinitions = 
-    { 
-        new ColumnDefinition { Width = new GridLength(0.48, GridUnitType.Star) }, 
-        new ColumnDefinition { Width = new GridLength(0.52, GridUnitType.Star) } 
-    }, 
-    ColumnSpacing = 10, 
-    HeightRequest = 300 
-};
+        { 
+            ColumnDefinitions = 
+            { 
+                new ColumnDefinition { Width = new GridLength(0.45, GridUnitType.Star) }, 
+                new ColumnDefinition { Width = new GridLength(0.55, GridUnitType.Star) } 
+            }, 
+            ColumnSpacing = 10, 
+            HeightRequest = 300 
+        };
+
         // 1. Левая панель (Список)
         var shopList = new VerticalStackLayout { Spacing = 8 };
-        var shopHeader = new HorizontalStackLayout { Spacing = 8, Children = { new Image { Source = "icon_basket.png", WidthRequest = 20, HeightRequest = 20 }.BindTint(ThemeManager.AccentColor), new Label { Text = Loc.T("ShoppingList"), FontSize = 16, FontAttributes = FontAttributes.Bold }.BindText() } };
+        var shopHeader = new HorizontalStackLayout { Spacing = 8 };
+        var shopIcon = new Image { Source = "icon_basket.png", WidthRequest = 20, HeightRequest = 20 };
+        shopIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var shopTitle = new Label { Text = Loc.T("ShoppingList"), FontSize = 16, FontAttributes = FontAttributes.Bold };
+        ThemeManager.BindText(shopTitle);
+        shopHeader.Children.Add(shopIcon); shopHeader.Children.Add(shopTitle);
         shopList.Children.Add(shopHeader);
 
         _shopItemsContainer = new VerticalStackLayout { Spacing = 8 };
-        var shopScroll = new ScrollView { Content = _shopItemsContainer, VerticalOptions = LayoutOptions.FillAndExpand };
+        var shopScroll = new ScrollView { Content = _shopItemsContainer };
         shopList.Children.Add(shopScroll);
 
-        // Кнопки на одной строке
-        var btnStack = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8 };
-        var btnAdd = new Button { Text = "+ " + Loc.T("Add"), BackgroundColor = Colors.Transparent, BorderColor = ThemeManager.AccentColor, BorderWidth = 1, CornerRadius = 12, TextColor = ThemeManager.AccentColor };
-        btnAdd.Clicked += async (_, _) => await ShowAddItemPopup();
-        var btnDel = new Button { Text = "🗑 " + Loc.T("Delete"), BackgroundColor = Colors.Transparent, BorderColor = Color.FromArgb("#FF414D"), BorderWidth = 1, CornerRadius = 12, TextColor = Color.FromArgb("#FF414D") };
-        btnDel.Clicked += (_, _) => { _shoppingItems.RemoveAll(i => i.IsChecked); SaveShoppingList(); RenderShoppingList(); };
+        // ✅ Кнопки СТРОГО как в концепте (кастомный Border вместо Button)
+        var btnStack = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8, Margin = new Thickness(0, 8, 0, 0) };
+        
+        var btnAdd = new Border { StrokeShape = new RoundRectangle { CornerRadius = 12 }, StrokeThickness = 1, Stroke = ThemeManager.AccentColor, HeightRequest = 44, Content = new Label { Text = "+ " + Loc.T("Add"), TextColor = ThemeManager.AccentColor, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, FontSize = 13 } };
+        btnAdd.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await ShowAddItemPopup()) });
+
+        var btnDel = new Border { StrokeShape = new RoundRectangle { CornerRadius = 12 }, StrokeThickness = 1, Stroke = Color.FromArgb("#FF414D"), HeightRequest = 44, Content = new Label { Text = "🗑 " + Loc.T("Delete"), TextColor = Color.FromArgb("#FF414D"), HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center, FontSize = 13 } };
+        btnDel.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { _shoppingItems.RemoveAll(i => i.IsChecked); SaveShoppingList(); RenderShoppingList(); }) });
+
         btnStack.Add(btnAdd, 0, 0); btnStack.Add(btnDel, 1, 0);
         shopList.Children.Add(btnStack);
 
@@ -108,37 +117,45 @@ public class StorePage : ContentPage
         leftPanel.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
         leftPanel.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
-        // 2. Правая панель (Карта)
-        var mapPlaceholder = new Border { BackgroundColor = Color.FromArgb("#111116"), StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 20 } };
-        var mapStack = new VerticalStackLayout { VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center, Spacing = 10 };
-        var mapIcon = new Image { Source = "icon_map.png", WidthRequest = 40, HeightRequest = 40 };
-        mapIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        mapStack.Children.Add(mapIcon);
-        mapStack.Children.Add(new Label { Text = "Карта скоро", TextColor = Colors.Gray, FontSize = 14 });
-        mapPlaceholder.Content = mapStack;
+        // 2. Правая панель (Карта-заглушка + Магазины)
+        var mapPlaceholder = new Border { BackgroundColor = Color.FromArgb("#1A2C4A"), StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 20 } };
+        
+        _storesListLayout = new VerticalStackLayout { Spacing = 4, Padding = 12, VerticalOptions = LayoutOptions.End };
+        var storesOverlay = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = _storesListLayout, BackgroundColor = Color.FromRgba(0,0,0,0.85), Margin = new Thickness(10) };
+        storesOverlay.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
+
+        var mapGrid = new Grid();
+        mapGrid.Add(mapPlaceholder);
+        mapGrid.Add(storesOverlay);
 
         mainGrid.Add(leftPanel, 0, 0);
-        mainGrid.Add(mapPlaceholder, 1, 0);
+        mainGrid.Add(mapGrid, 1, 0);
 
-        // 3. Магазины (под картой)
-        _storesListLayout = new VerticalStackLayout { Spacing = 4, Padding = 12 };
-        var storesBorder = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Content = _storesListLayout };
-        storesBorder.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
-        storesBorder.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
-
-        // 4. Шаблон
-        var templateBtn = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 12 };
+        // 3. Шаблон (в самом низу)
+        var templateBtn = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 12, Margin = new Thickness(0, 10, 0, 0) };
         templateBtn.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
         templateBtn.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         var templateGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
-        templateGrid.Add(new Image { Source = "icon_box.png", WidthRequest = 24, HeightRequest = 24 }.BindTint(ThemeManager.AccentColor), 0, 0);
-        var tStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center, Children = { new Label { Text = Loc.T("TemplateList"), FontSize = 14, FontAttributes = FontAttributes.Bold }.BindText(), new Label { Text = Loc.T("TemplateDesc"), FontSize = 11 }.BindText(true) } };
+        
+        var templateIcon = new Image { Source = "icon_box.png", WidthRequest = 24, HeightRequest = 24 };
+        templateIcon.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        templateGrid.Add(templateIcon, 0, 0);
+        
+        var tStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+        var tTitle = new Label { Text = Loc.T("TemplateList"), FontSize = 14, FontAttributes = FontAttributes.Bold };
+        var tDesc = new Label { Text = Loc.T("TemplateDesc"), FontSize = 11 };
+        ThemeManager.BindText(tTitle); ThemeManager.BindText(tDesc, true);
+        tStack.Children.Add(tTitle); tStack.Children.Add(tDesc);
         templateGrid.Add(tStack, 1, 0);
-        templateGrid.Add(new Image { Source = "icon_chevron_right.png", WidthRequest = 16, HeightRequest = 16 }.BindTint(Colors.Gray), 2, 0);
+        
+        var chevron = new Image { Source = "icon_chevron_right.png", WidthRequest = 16, HeightRequest = 16, VerticalOptions = LayoutOptions.Center };
+        chevron.Behaviors.Add(new IconTintColorBehavior { TintColor = Colors.Gray });
+        templateGrid.Add(chevron, 2, 0);
+        
         templateBtn.Content = templateGrid;
         templateBtn.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await ShowTemplatesPopup()) });
 
-        var content = new VerticalStackLayout { Padding = 16, Spacing = 12, Children = { headerLayout, searchFrame, mainGrid, storesBorder, templateBtn } };
+        var content = new VerticalStackLayout { Padding = 16, Spacing = 12, Children = { headerLayout, searchFrame, mainGrid, templateBtn } };
         var scroll = new ScrollView { Content = content };
 
         _rootGrid = new Grid { RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
@@ -168,11 +185,11 @@ public class StorePage : ContentPage
         }
     }
 
+    // ✅ БЕЗОПАСНЫЙ ПОП-АП (без вложенности, без кастомных ресурсов)
     private async Task ShowAddItemPopup()
     {
         var overlay = new Grid { BackgroundColor = Color.FromRgba(0,0,0,0.7), ZIndex = 100 };
-        var popup = new Border { StrokeThickness = 2, Stroke = ThemeManager.AccentColor, StrokeShape = new RoundRectangle { CornerRadius = 20 }, BackgroundColor = (Color)Application.Current!.Resources[ThemeManager.Surface], Padding = 20, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center, WidthRequest = 320 };
-
+        
         var nameEntry = new Entry { Placeholder = "Название", HeightRequest = 50 };
         var qtyEntry = new Entry { Placeholder = "Кол-во", Text = "1 шт.", HeightRequest = 50 };
         ThemeManager.BindEntry(nameEntry); ThemeManager.BindEntry(qtyEntry);
@@ -180,39 +197,108 @@ public class StorePage : ContentPage
         var emojis = new[] { "🥛", "🍞", "🥩", "🍎", "🥤", "🧀", "🥚", "🧻", "🍫" };
         string selectedEmoji = "🛒";
         var emojiGrid = new FlexLayout { Wrap = Microsoft.Maui.Layouts.FlexWrap.Wrap };
-        foreach (var em in emojis) { var lbl = new Label { Text = em, FontSize = 24, Padding = 4 }; lbl.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => selectedEmoji = em) }); emojiGrid.Children.Add(lbl); }
+        foreach (var em in emojis) 
+        { 
+            var lbl = new Label { Text = em, FontSize = 24, Padding = 4 }; 
+            lbl.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => selectedEmoji = em) }); 
+            emojiGrid.Children.Add(lbl); 
+        }
 
-        var saveBtn = new Button { Text = "Сохранить", BackgroundColor = ThemeManager.AccentColor, TextColor = Colors.White, CornerRadius = 10 };
-        var cancelBtn = new Button { Text = "Отмена", BackgroundColor = Colors.Transparent, TextColor = Colors.Gray, CornerRadius = 10 };
+        var saveBtn = new Border { BackgroundColor = ThemeManager.AccentColor, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(0, 10), Content = new Label { Text = "Сохранить", TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center } };
+        var cancelBtn = new Border { BackgroundColor = Colors.Transparent, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(0, 10), Content = new Label { Text = "Отмена", TextColor = Colors.Gray, HorizontalOptions = LayoutOptions.Center } };
 
-        popup.Content = new VerticalStackLayout { Spacing = 12, Children = { new Label { Text = "Новый товар", FontSize = 18, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center }, nameEntry, qtyEntry, new Label { Text = "Эмодзи:", FontSize = 12, TextColor = Colors.Gray }, emojiGrid, new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8, Children = { cancelBtn, saveBtn } } } };
-        var btnGrid = (Grid)((VerticalStackLayout)popup.Content).Children.Last(); btnGrid.Add(cancelBtn, 0, 0); btnGrid.Add(saveBtn, 1, 0);
+        var popup = new Border 
+        { 
+            StrokeThickness = 2, Stroke = ThemeManager.AccentColor, 
+            StrokeShape = new RoundRectangle { CornerRadius = 20 }, 
+            BackgroundColor = Color.FromArgb("#201D28"), // ✅ ЖЕСТКИЙ ЦВЕТ, ЧТОБЫ НЕ БЫЛО ВЫЛЕТА
+            Padding = 20, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
+            WidthRequest = 320
+        };
 
-        overlay.Add(popup); _rootGrid.Add(overlay);
+        var btnGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 8, Children = { cancelBtn, saveBtn } };
+        btnGrid.Add(cancelBtn, 0, 0); btnGrid.Add(saveBtn, 1, 0);
+
+        popup.Content = new VerticalStackLayout
+        {
+            Spacing = 12,
+            Children = 
+            { 
+                new Label { Text = "Новый товар", FontSize = 18, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, TextColor = Colors.White }, 
+                nameEntry, 
+                qtyEntry, 
+                new Label { Text = "Эмодзи:", FontSize = 12, TextColor = Colors.Gray }, 
+                emojiGrid, 
+                btnGrid 
+            }
+        };
+
+        overlay.Add(popup);
+        _rootGrid.Add(overlay);
+
         var tcs = new TaskCompletionSource<bool>();
-        saveBtn.Clicked += (_, _) => { if (!string.IsNullOrWhiteSpace(nameEntry.Text)) { var priceSrv = IPlatformApplication.Current!.Services.GetService<PriceService>()!; _shoppingItems.Add(new ShoppingItem { Name = nameEntry.Text, Quantity = qtyEntry.Text, Emoji = selectedEmoji, Price = priceSrv.GetPrice(nameEntry.Text) }); SaveShoppingList(); RenderShoppingList(); } tcs.SetResult(true); };
-        cancelBtn.Clicked += (_, _) => tcs.SetResult(false);
-        await tcs.Task; _rootGrid.Remove(overlay);
+        saveBtn.GestureRecognizers.Add(new TapGestureRecognizer 
+        { 
+            Command = new Command(() => 
+            { 
+                if (!string.IsNullOrWhiteSpace(nameEntry.Text)) 
+                { 
+                    var priceSrv = IPlatformApplication.Current!.Services.GetService<PriceService>()!; 
+                    _shoppingItems.Add(new ShoppingItem { Name = nameEntry.Text, Quantity = qtyEntry.Text, Emoji = selectedEmoji, Price = priceSrv.GetPrice(nameEntry.Text) }); 
+                    SaveShoppingList(); RenderShoppingList(); 
+                } 
+                tcs.SetResult(true); 
+            }) 
+        });
+        
+        cancelBtn.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => tcs.SetResult(false)) });
+
+        await tcs.Task;
+        _rootGrid.Remove(overlay);
     }
 
+    // ✅ БЕЗОПАСНЫЙ ПОП-АП ШАБЛОНОВ
     private async Task ShowTemplatesPopup()
     {
         var overlay = new Grid { BackgroundColor = Color.FromRgba(0,0,0,0.7), ZIndex = 100 };
-        var popup = new Border { StrokeThickness = 2, Stroke = ThemeManager.AccentColor, StrokeShape = new RoundRectangle { CornerRadius = 20 }, BackgroundColor = (Color)Application.Current!.Resources[ThemeManager.Surface], Padding = 20, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center, WidthRequest = 280 };
+        var popup = new Border 
+        { 
+            StrokeThickness = 2, Stroke = ThemeManager.AccentColor, 
+            StrokeShape = new RoundRectangle { CornerRadius = 20 }, 
+            BackgroundColor = Color.FromArgb("#201D28"), // ✅ ЖЕСТКИЙ ЦВЕТ
+            Padding = 20, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
+            WidthRequest = 280
+        };
+
+        var btnClassic = new Border { BackgroundColor = ThemeManager.AccentColor, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(0, 10), Content = new Label { Text = "Классический", TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center } };
+        var btnPicnic = new Border { BackgroundColor = ThemeManager.AccentColor, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(0, 10), Content = new Label { Text = "Пикник", TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center } };
+        var btnCustom = new Border { BackgroundColor = Colors.Transparent, Stroke = ThemeManager.AccentColor, StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(0, 10), Content = new Label { Text = "Создать свой", TextColor = ThemeManager.AccentColor, HorizontalOptions = LayoutOptions.Center } };
+        var btnCancel = new Border { BackgroundColor = Colors.Transparent, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(0, 10), Content = new Label { Text = "Назад", TextColor = Colors.Gray, HorizontalOptions = LayoutOptions.Center } };
+
         var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label { Text = "Шаблоны", FontSize = 18, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center });
-        var btnClassic = new Button { Text = "Классический", BackgroundColor = ThemeManager.AccentColor, TextColor = Colors.White, CornerRadius = 10 };
-        var btnPicnic = new Button { Text = "Пикник", BackgroundColor = ThemeManager.AccentColor, TextColor = Colors.White, CornerRadius = 10 };
-        var btnCustom = new Button { Text = "Создать свой", BackgroundColor = Colors.Transparent, BorderColor = ThemeManager.AccentColor, BorderWidth = 1, TextColor = ThemeManager.AccentColor, CornerRadius = 10 };
-        var btnCancel = new Button { Text = "Назад", BackgroundColor = Colors.Transparent, TextColor = Colors.Gray, CornerRadius = 10 };
+        stack.Children.Add(new Label { Text = "Шаблоны", FontSize = 18, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, TextColor = Colors.White });
         stack.Children.Add(btnClassic); stack.Children.Add(btnPicnic); stack.Children.Add(btnCustom); stack.Children.Add(btnCancel);
+        
         popup.Content = stack; overlay.Add(popup); _rootGrid.Add(overlay);
         var tcs = new TaskCompletionSource<bool>();
-        btnClassic.Clicked += (_, _) => { _shoppingItems.AddRange(_storeService.GetTemplate("Базовый")); SaveShoppingList(); RenderShoppingList(); tcs.SetResult(true); };
-        btnPicnic.Clicked += (_, _) => { _shoppingItems.AddRange(_storeService.GetTemplate("Для пикника")); SaveShoppingList(); RenderShoppingList(); tcs.SetResult(true); };
-        btnCustom.Clicked += async (_, _) => { _rootGrid.Remove(overlay); await ShowAddItemPopup(); tcs.SetResult(true); };
-        btnCancel.Clicked += (_, _) => tcs.SetResult(false);
-        await tcs.Task; _rootGrid.Remove(overlay);
+        
+        btnClassic.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { _shoppingItems.AddRange(_storeService.GetTemplate("Базовый")); SaveShoppingList(); RenderShoppingList(); tcs.SetResult(true); }) });
+        btnPicnic.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => { _shoppingItems.AddRange(_storeService.GetTemplate("Для пикника")); SaveShoppingList(); RenderShoppingList(); tcs.SetResult(true); }) });
+        
+        // ✅ ИСПРАВЛЕННЫЙ ВЫЛЕТ: Сначала убираем этот поп-ап, потом открываем новый
+        btnCustom.GestureRecognizers.Add(new TapGestureRecognizer 
+        { 
+            Command = new Command(async () => 
+            { 
+                tcs.SetResult(true); 
+                await Task.Delay(200); // Даем UI время закрыть текущее окно
+                await ShowAddItemPopup(); 
+            }) 
+        });
+        btnCancel.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => tcs.SetResult(false)) });
+
+        await tcs.Task; 
+        _rootGrid.Remove(overlay);
     }
 
     private void RenderShoppingList()
@@ -236,22 +322,31 @@ public class StorePage : ContentPage
     private void RenderStores()
     {
         _storesListLayout.Children.Clear();
-        _storesListLayout.Children.Add(new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 0, 0, 4), Children = { new Image { Source = "icon_store.png", WidthRequest = 20, HeightRequest = 20 }.BindTint(ThemeManager.AccentColor), new Label { Text = Loc.T("AvailableStores"), FontSize = 14, FontAttributes = FontAttributes.Bold }.BindText() } });
+        
+        var hHeader = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 0, 0, 4) };
+        var img = new Image { Source = "icon_store.png", WidthRequest = 20, HeightRequest = 20 };
+        img.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+        var lbl = new Label { Text = Loc.T("AvailableStores"), FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Colors.White };
+        hHeader.Children.Add(img); hHeader.Children.Add(lbl);
+        _storesListLayout.Children.Add(hHeader);
+
         foreach (var store in _nearbyStores)
         {
             var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 8, Padding = new Thickness(0, 8) };
-            grid.Add(new Border { WidthRequest = 30, HeightRequest = 30, StrokeShape = new RoundRectangle { CornerRadius = 8 }, BackgroundColor = Colors.White, Content = new Label { Text = store.Logo, TextColor = Colors.Red, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } }, 0, 0);
-            grid.Add(new Label { Text = store.Name, FontSize = 13, VerticalOptions = LayoutOptions.Center }.BindText(), 1, 0);
-            grid.Add(new Label { Text = $"{store.DistanceKm:F1} км", FontSize = 12, TextColor = Colors.Gray, VerticalOptions = LayoutOptions.Center }, 2, 0);
-            grid.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Map.Default.OpenAsync(new Location(store.Location.Latitude, store.Location.Longitude), new MapLaunchOptions { Name = store.Name })) });
+            var brand = new Border { WidthRequest = 30, HeightRequest = 30, StrokeShape = new RoundRectangle { CornerRadius = 8 }, BackgroundColor = Colors.White, Content = new Label { Text = store.Logo, TextColor = Colors.Red, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center } };
+            var title = new Label { Text = store.Name, FontSize = 13, VerticalOptions = LayoutOptions.Center, TextColor = Colors.White };
+            var d = new Label { Text = $"{store.DistanceKm:F1} км", FontSize = 12, TextColor = Colors.Gray, VerticalOptions = LayoutOptions.Center };
+            grid.Add(brand, 0, 0); grid.Add(title, 1, 0); grid.Add(d, 2, 0);
+
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += async (_, _) =>
+            {
+                var location = new Location(store.Location.Latitude, store.Location.Longitude);
+                var options = new MapLaunchOptions { Name = store.Name };
+                await Map.Default.OpenAsync(location, options);
+            };
+            grid.GestureRecognizers.Add(tap);
             _storesListLayout.Children.Add(grid);
         }
     }
-}
-
-// Вспомогательный класс для быстрой привязки цветов
-public static class ViewExtensions
-{
-    public static T BindTint<T>(this T view, Color color) where T : Image { view.Behaviors.Add(new IconTintColorBehavior { TintColor = color }); return view; }
-    public static T BindText<T>(this T view, bool secondary = false) where T : Label { ThemeManager.BindText(view, secondary); return view; }
 }
