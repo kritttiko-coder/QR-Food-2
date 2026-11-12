@@ -22,12 +22,23 @@ public class ScanPage : ContentPage
     private byte[]? _expiryPhoto;
     private Product _current = new();
 
+    // === Основные вью ===
     private CameraBarcodeReaderView _scanner = null!;
     private VerticalStackLayout _photoPrompt = null!;
     private VerticalStackLayout _loadingView = null!;
     private ScrollView _confirmView = null!;
     private Label _scannerStatus = null!;
     private Button _skipBtn = null!;
+
+    // === Элементы формы подтверждения (поля класса!) ===
+    private Image _productImage = null!;
+    private Label _noPhotoLabel = null!;
+    private Label _gtinLabel = null!;
+    private Entry _nameEntry = null!;
+    private Entry _brandEntry = null!;
+    private Entry _volumeEntry = null!;
+    private Picker _categoryPicker = null!;
+    private DatePicker _datePicker = null!;
 
     public ScanPage(ProductRepository repo)
     {
@@ -86,7 +97,7 @@ public class ScanPage : ContentPage
         var overlay = new Grid();
         overlay.Add(_scanner);
         overlay.Add(_scannerStatus);
-        overlay.Add(_skipBtn); // Добавляем кнопку поверх камеры
+        overlay.Add(_skipBtn); // Кнопка поверх камеры
         overlay.Add(_photoPrompt);
         overlay.Add(_loadingView);
         overlay.Add(_confirmView);
@@ -216,24 +227,23 @@ public class ScanPage : ContentPage
             LocalImagePath = localPath
         };
 
-        // Заполнение UI
-        ((Entry)_confirmView.Content.FindByName("_nameEntry")).Text = _current.Name;
-        ((Entry)_confirmView.Content.FindByName("_brandEntry")).Text = _current.Brand;
-        ((Entry)_confirmView.Content.FindByName("_volumeEntry")).Text = _current.Volume;
-        ((DatePicker)_confirmView.Content.FindByName("_datePicker")).Date = _current.ExpiryDate;
-        ((Label)_confirmView.Content.FindByName("_gtinLabel")).Text = $"GTIN: {_gtin}\nSerial: {_serial}";
-        var img = (Image)_confirmView.Content.FindByName("_productImage");
-        var noImg = (Label)_confirmView.Content.FindByName("_noPhotoLabel");
+        // === Прямые обращения к полям — без FindByName ===
+        _nameEntry.Text = _current.Name;
+        _brandEntry.Text = _current.Brand;
+        _volumeEntry.Text = _current.Volume;
+        _datePicker.Date = _current.ExpiryDate;
+        _gtinLabel.Text = $"GTIN: {_gtin}\nSerial: {_serial}";
+
         if (_current.HasLocalImage)
         {
-            img.Source = ImageSource.FromFile(_current.LocalImagePath);
-            img.IsVisible = true;
-            noImg.IsVisible = false;
+            _productImage.Source = ImageSource.FromFile(_current.LocalImagePath);
+            _productImage.IsVisible = true;
+            _noPhotoLabel.IsVisible = false;
         }
         else
         {
-            img.IsVisible = false;
-            noImg.IsVisible = true;
+            _productImage.IsVisible = false;
+            _noPhotoLabel.IsVisible = true;
         }
 
         _phase = ScanPhase.Confirming;
@@ -242,11 +252,11 @@ public class ScanPage : ContentPage
 
     private async void OnSave(object? s, EventArgs e)
     {
-        _current.Name = ((Entry)_confirmView.Content.FindByName("_nameEntry")).Text ?? "";
-        _current.Brand = ((Entry)_confirmView.Content.FindByName("_brandEntry")).Text ?? "";
-        _current.Volume = ((Entry)_confirmView.Content.FindByName("_volumeEntry")).Text ?? "";
-        _current.Category = ((Picker)_confirmView.Content.FindByName("_categoryPicker")).SelectedItem as string ?? "Другое";
-        _current.ExpiryDate = ((DatePicker)_confirmView.Content.FindByName("_datePicker")).Date;
+        _current.Name = _nameEntry.Text ?? "";
+        _current.Brand = _brandEntry.Text ?? "";
+        _current.Volume = _volumeEntry.Text ?? "";
+        _current.Category = _categoryPicker.SelectedItem as string ?? "Другое";
+        _current.ExpiryDate = _datePicker.Date;
 
         await _repo.Save(_current);
         await Navigation.PopAsync();
@@ -338,25 +348,26 @@ public class ScanPage : ContentPage
 
     private ScrollView BuildConfirmView()
     {
-        var productImage = new Image
+        // === Поля класса, а не локальные переменные ===
+        _productImage = new Image
         {
             HeightRequest = 180,
             Aspect = Aspect.AspectFit,
-            IsVisible = false,
-            AutomationId = "_productImage"
+            IsVisible = false
         };
-        var noPhotoLabel = new Label
+
+        _noPhotoLabel = new Label
         {
             Text = "Нет фото",
             FontSize = 14,
             TextColor = Colors.Gray,
             HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-            AutomationId = "_noPhotoLabel"
+            VerticalTextAlignment = TextAlignment.Center
         };
+
         var photoGrid = new Grid { HeightRequest = 180 };
-        photoGrid.Add(noPhotoLabel);
-        photoGrid.Add(productImage);
+        photoGrid.Add(_noPhotoLabel);
+        photoGrid.Add(_productImage);
 
         var photoBorder = new Border
         {
@@ -386,32 +397,32 @@ public class ScanPage : ContentPage
             if (path != null)
             {
                 _current.LocalImagePath = path;
-                productImage.Source = ImageSource.FromFile(path);
-                productImage.IsVisible = true;
-                noPhotoLabel.IsVisible = false;
+                _productImage.Source = ImageSource.FromFile(path);
+                _productImage.IsVisible = true;
+                _noPhotoLabel.IsVisible = false;
             }
         };
 
-        var gtinLabel = new Label { FontSize = 12, AutomationId = "_gtinLabel" };
-        ThemeManager.BindText(gtinLabel, secondary: true);
+        _gtinLabel = new Label { FontSize = 12 };
+        ThemeManager.BindText(_gtinLabel, secondary: true);
 
-        var nameEntry = new Entry { Placeholder = "Название", HeightRequest = 50, AutomationId = "_nameEntry" };
-        ThemeManager.BindEntry(nameEntry);
+        _nameEntry = new Entry { Placeholder = "Название", HeightRequest = 50 };
+        ThemeManager.BindEntry(_nameEntry);
 
-        var brandEntry = new Entry { Placeholder = "Бренд", HeightRequest = 50, AutomationId = "_brandEntry" };
-        ThemeManager.BindEntry(brandEntry);
+        _brandEntry = new Entry { Placeholder = "Бренд", HeightRequest = 50 };
+        ThemeManager.BindEntry(_brandEntry);
 
-        var volumeEntry = new Entry { Placeholder = "Объём (0.5 л)", HeightRequest = 50, AutomationId = "_volumeEntry" };
-        ThemeManager.BindEntry(volumeEntry);
+        _volumeEntry = new Entry { Placeholder = "Объём (0.5 л)", HeightRequest = 50 };
+        ThemeManager.BindEntry(_volumeEntry);
 
-        var categoryPicker = new Picker { Title = "Категория", AutomationId = "_categoryPicker" };
-        categoryPicker.ItemsSource = new List<string>
+        _categoryPicker = new Picker { Title = "Категория" };
+        _categoryPicker.ItemsSource = new List<string>
         {
             "Молочные", "Напитки", "Мясо и рыба", "Овощи и фрукты", "Заморозка", "Другое"
         };
-        categoryPicker.SelectedIndex = 5;
+        _categoryPicker.SelectedIndex = 5;
 
-        var datePicker = new DatePicker { Date = DateTime.Today.AddDays(7), AutomationId = "_datePicker" };
+        _datePicker = new DatePicker { Date = DateTime.Today.AddDays(7) };
 
         var saveBtn = new Button
         {
@@ -432,9 +443,9 @@ public class ScanPage : ContentPage
                 Spacing = 10,
                 Children =
                 {
-                    photoBorder, captureBtn, gtinLabel,
-                    nameEntry, brandEntry, volumeEntry,
-                    categoryPicker, datePicker, saveBtn
+                    photoBorder, captureBtn, _gtinLabel,
+                    _nameEntry, _brandEntry, _volumeEntry,
+                    _categoryPicker, _datePicker, saveBtn
                 }
             }
         };
