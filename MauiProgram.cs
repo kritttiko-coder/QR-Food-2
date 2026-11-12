@@ -1,9 +1,8 @@
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-using ZXing.Net.Maui;
-using ZXing.Net.Maui.Controls;
 using Plugin.Maui.OCR;
 using Microsoft.Maui.Controls.Maps; 
+using BarcodeScanning;
 
 
 namespace FoodExpiryApp;
