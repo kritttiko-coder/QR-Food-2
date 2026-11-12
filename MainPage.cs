@@ -167,7 +167,7 @@ public class MainPage : ContentPage
         // КНОПКИ В КРАСИВОЙ РАМКЕ
         var btnStyle = new Action<Border>(b => { b.StrokeThickness = 1; b.Stroke = ThemeManager.AccentColor; b.StrokeShape = new RoundRectangle { CornerRadius = 8 }; b.BackgroundColor = Color.FromRgba(0,0,0,0.2f); b.Padding = 4; b.WidthRequest = 40; b.HeightRequest = 40; });
 
-        var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 20, HeightRequest = 20, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+        var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 35, HeightRequest = 35, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
         deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") });
         var deleteButton = new Border { Content = deleteImg }; btnStyle(deleteButton);
         deleteButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => {
@@ -179,7 +179,7 @@ public class MainPage : ContentPage
             all = await repo.All(); Render();
         }) });
 
-        var menuImg = new Image { Source = "icon_dots.png", WidthRequest = 20, HeightRequest = 20, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+        var menuImg = new Image { Source = "icon_dots.png", WidthRequest = 35, HeightRequest = 35, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
         menuImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
         var menuButton = new Border { Content = menuImg }; btnStyle(menuButton);
         menuButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => {
