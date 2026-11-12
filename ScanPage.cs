@@ -67,15 +67,46 @@ public class ScanPage : ContentPage
         UpdateVisibility();
     }
 
-    protected override async void OnAppearing()
+    private async void OnTakeExpiryPhoto(object? s, EventArgs e)
+{
+    try
     {
-        base.OnAppearing();
-        var status = await Permissions.RequestAsync<Permissions.Camera>();
-        if (status != PermissionStatus.Granted) { await DisplayAlert("Ошибка", "Нужно разрешение", "OK"); await Navigation.PopAsync(); return; }
-        _phase = ScanPhase.AwaitingCode;
+        // Запрашиваем разрешения перед съёмкой
+        var cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+        var storageStatus = await Permissions.RequestAsync<Permissions.StorageWrite>();
+        
+        if (cameraStatus != PermissionStatus.Granted)
+        {
+            await DisplayAlert("Ошибка", "Нужно разрешение на камеру", "OK");
+            return;
+        }
+
+        if (!MediaPicker.Default.IsCaptureSupported)
+        {
+            await DisplayAlert("Ошибка", "Камера не поддерживается", "OK");
+            return;
+        }
+
+        var photo = await MediaPicker.Default.CapturePhotoAsync();
+        if (photo == null) return;
+
+        await using var stream = await photo.OpenReadAsync();
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        _expiryPhoto = ms.ToArray();
+
+        _phase = ScanPhase.Processing;
+        UpdateVisibility();
+        await ProcessAsync();
+    }
+    catch (Exception ex)
+    {
+        // Показываем ошибку вместо вылета
+        await DisplayAlert("Ошибка камеры", ex.Message, "OK");
+        _phase = ScanPhase.AwaitingPhoto;
         UpdateVisibility();
     }
-
+}
     protected override void OnDisappearing() { base.OnDisappearing(); _scanner.IsDetecting = false; }
 
     private void OnBarcodeDetected(object? sender, BarcodeDetectionEventArgs e)
