@@ -145,61 +145,61 @@ public class StatisticsPage : ContentPage
     }
 
     private void UpdateCostDisplay()
+{
+    if (!_costSwitch.IsToggled)
     {
-        if (!_costSwitch.IsToggled)
-        {
-            _lblCost.Text = $"≈ 0 {new PriceService().CurrencySymbol}";
-            _costChartView.Drawable = null;
-            _costChartView.Invalidate();
-            return;
-        }
-
-        var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
-
-        double totalCost = _allProducts.Sum(p => priceService.GetPrice(p));
-        _lblCost.Text = $"≈ {totalCost:N0} {priceService.CurrencySymbol}";
-
-        var costDrawable = new CostChartDrawable { AccentColor = ThemeManager.AccentColor };
-        var labels = new List<string>();
-        var values = new List<float>();
-        DateTime now = AppClock.Now;
-
-        if (_costPeriod == 0) // Неделя
-        {
-            for (int i = 6; i >= 0; i--)
-            {
-                var day = now.AddDays(-i).Date;
-                labels.Add(day.ToString("dd.MM"));
-                var dailySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Date == day).Sum(p => priceService.GetPrice(p));
-                values.Add((float)dailySum);
-            }
-        }
-        else if (_costPeriod == 1) // Месяц
-        {
-            for (int i = 3; i >= 0; i--)
-            {
-                var weekStart = now.AddDays(-i * 7).Date;
-                labels.Add($"Нед {4 - i}");
-                var weeklySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Date >= weekStart && p.ScannedAtUtc.ToLocalTime().Date < weekStart.AddDays(7)).Sum(p => priceService.GetPrice(p));
-                values.Add((float)weeklySum);
-            }
-        }
-        else // Год
-        {
-            for (int i = 11; i >= 0; i--)
-            {
-                var month = now.AddMonths(-i);
-                labels.Add(month.ToString("MMM"));
-                var monthlySum = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime().Month == month.Month && p.ScannedAtUtc.ToLocalTime().Year == month.Year).Sum(p => priceService.GetPrice(p));
-                values.Add((float)monthlySum);
-            }
-        }
-
-        costDrawable.Values = values.ToArray();
-        costDrawable.Labels = labels.ToArray();
-        _costChartView.Drawable = costDrawable;
+        _lblCost.Text = $"≈ 0 {new PriceService().CurrencySymbol}";
+        _costChartView.Drawable = null;
         _costChartView.Invalidate();
+        return;
     }
+
+    var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
+    double totalCost = _allProducts.Sum(p => priceService.GetPrice(p));
+    _lblCost.Text = $"≈ {totalCost:N0} {priceService.CurrencySymbol}";
+
+    var costDrawable = new CostChartDrawable { AccentColor = ThemeManager.AccentColor };
+    var labels = new List<string>();
+    var values = new List<float>();
+    DateTime now = AppClock.Now;
+
+    if (_costPeriod == 0) // Неделя
+    {
+        for (int i = 6; i >= 0; i--)
+        {
+            var day = now.AddDays(-i).Date;
+            labels.Add(day.ToString("dd.MM"));
+            // ✅ Используем CreatedAt
+            var dailySum = _allProducts.Where(p => p.CreatedAt.Date == day).Sum(p => priceService.GetPrice(p));
+            values.Add((float)dailySum);
+        }
+    }
+    else if (_costPeriod == 1) // Месяц
+    {
+        for (int i = 3; i >= 0; i--)
+        {
+            var weekStart = now.AddDays(-i * 7).Date;
+            labels.Add($"Нед {4 - i}");
+            var weeklySum = _allProducts.Where(p => p.CreatedAt.Date >= weekStart && p.CreatedAt.Date < weekStart.AddDays(7)).Sum(p => priceService.GetPrice(p));
+            values.Add((float)weeklySum);
+        }
+    }
+    else // Год
+    {
+        for (int i = 11; i >= 0; i--)
+        {
+            var month = now.AddMonths(-i);
+            labels.Add(month.ToString("MMM"));
+            var monthlySum = _allProducts.Where(p => p.CreatedAt.Month == month.Month && p.CreatedAt.Year == month.Year).Sum(p => priceService.GetPrice(p));
+            values.Add((float)monthlySum);
+        }
+    }
+
+    costDrawable.Values = values.ToArray();
+    costDrawable.Labels = labels.ToArray();
+    _costChartView.Drawable = costDrawable;
+    _costChartView.Invalidate();
+}
 
     private async Task LoadDataAsync()
     {
@@ -213,7 +213,7 @@ public class StatisticsPage : ContentPage
         DateTime now = AppClock.Now;
         DateTime threshold = _currentPeriod switch { 0 => now.AddDays(-7), 1 => now.AddDays(-30), 2 => now.AddDays(-365), _ => now.AddDays(-7) };
 
-        var filtered = _allProducts.Where(p => p.ScannedAtUtc.ToLocalTime() >= threshold || p.ExpiryDate >= threshold).ToList();
+        var filtered = _allProducts.Where(p => p.CreatedAt >= threshold || p.ExpiryDate >= threshold).ToList();
         if (filtered.Count == 0) filtered = _allProducts;
 
         _lblProducts.Text = filtered.Count.ToString();
@@ -222,37 +222,43 @@ public class StatisticsPage : ContentPage
         _lblExpired.Text = filtered.Count(p => p.ExpiryDate < now).ToString();
 
         // --- ЛИНЕЙНЫЙ ГРАФИК ---
-        var lineDrawable = new LineChartDrawable { AccentColor = ThemeManager.AccentColor };
-        var lineLabels = new List<string>();
-        var lineValues = new List<float>();
+var lineDrawable = new LineChartDrawable { AccentColor = ThemeManager.AccentColor };
+var lineLabels = new List<string>();
+var lineValues = new List<float>();
 
-        if (_currentPeriod == 0) // Неделя
-        {
-            for (int i = 6; i >= 0; i--)
-            {
-                var day = now.AddDays(-i).Date;
-                lineLabels.Add(day.ToString("dd.MM"));
-                lineValues.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Date == day));
-            }
-        }
-        else if (_currentPeriod == 1) // Месяц
-        {
-            for (int i = 3; i >= 0; i--)
-            {
-                var weekStart = now.AddDays(-i * 7).Date;
-                lineLabels.Add($"Нед {4 - i}");
-                lineValues.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Date >= weekStart && p.ScannedAtUtc.ToLocalTime().Date < weekStart.AddDays(7)));
-            }
-        }
-        else // Год
-        {
-            for (int i = 11; i >= 0; i--)
-            {
-                var month = now.AddMonths(-i);
-                lineLabels.Add(month.ToString("MMM"));
-                lineValues.Add(_allProducts.Count(p => p.ScannedAtUtc.ToLocalTime().Month == month.Month && p.ScannedAtUtc.ToLocalTime().Year == month.Year));
-            }
-        }
+if (_currentPeriod == 0) // Неделя
+{
+    for (int i = 6; i >= 0; i--)
+    {
+        var day = now.AddDays(-i).Date;
+        lineLabels.Add(day.ToString("dd.MM"));
+        
+        lineValues.Add(_allProducts.Count(p => p.CreatedAt.Date == day));
+    }
+}
+else if (_currentPeriod == 1) // Месяц
+{
+    for (int i = 3; i >= 0; i--)
+    {
+        var weekStart = now.AddDays(-i * 7).Date;
+        lineLabels.Add($"Нед {4 - i}");
+        lineValues.Add(_allProducts.Count(p => p.CreatedAt.Date >= weekStart && p.CreatedAt.Date < weekStart.AddDays(7)));
+    }
+}
+else // Год
+{
+    for (int i = 11; i >= 0; i--)
+    {
+        var month = now.AddMonths(-i);
+        lineLabels.Add(month.ToString("MMM"));
+        lineValues.Add(_allProducts.Count(p => p.CreatedAt.Month == month.Month && p.CreatedAt.Year == month.Year));
+    }
+}
+
+lineDrawable.Values = lineValues.ToArray();
+lineDrawable.Labels = lineLabels.ToArray();
+_lineChartView.Drawable = lineDrawable;
+_lineChartView.Invalidate();
 
         lineDrawable.Values = lineValues.ToArray();
         lineDrawable.Labels = lineLabels.ToArray();
