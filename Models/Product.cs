@@ -12,6 +12,7 @@ public class Product
     public string Volume { get; set; } = "";
     public string Barcode { get; set; } = "";
     public DateTime ExpiryDate { get; set; } = DateTime.Today.AddDays(7);
+    public double Price { get; set; } = 0;  // Цена продукта в рублях
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
