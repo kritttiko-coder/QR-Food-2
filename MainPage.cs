@@ -159,6 +159,15 @@ public class MainPage : ContentPage
         var details = new Label { Text = string.Join(" • ", new[] { product.Variant, product.Volume, items.Count > 1 ? $"{items.Count} шт." : "" }.Where(s => !string.IsNullOrWhiteSpace(s))), FontSize = compact ? 11 : 14, IsVisible = !iconOnly };
         ThemeManager.BindText(details, secondary: true);
 
+        var priceLabel = new Label
+{
+    Text = product.Price > 0 ? $"{product.Price:N0} ₽" : "",
+    FontSize = 13,
+    FontAttributes = FontAttributes.Bold,
+    TextColor = ThemeManager.AccentColor,
+    IsVisible = product.Price > 0
+};
+
         var expiryLabels = new FlexLayout { Direction = FlexDirection.Row, Wrap = FlexWrap.Wrap };
         foreach (var item in items) expiryLabels.Children.Add(new Label { Text = ExpiryColor.Label(item.ExpiryDate), TextColor = ExpiryColor.For(item.ExpiryDate), FontSize = compact ? 11 : 15, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 2, 6, 0) });
         var textContent = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { name } };
