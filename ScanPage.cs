@@ -50,19 +50,13 @@ public class ScanPage : ContentPage
 
     private void BuildUI()
     {
-        // ✅ CAMERA VIEW (ML Kit) вместо ZXing
+        // CAMERA VIEW (ML Kit) вместо ZXing
         _cameraView = new CameraView
-        {
-            CameraEnabled = false,
-            VibrationOnDetected = true,
-            CaptureQuality = CaptureQuality.High,
-            BarcodeSymbologies =
-                BarcodeSymbologies.FormatDataMatrix |
-                BarcodeSymbologies.FormatQrCode |
-                BarcodeSymbologies.FormatEan13
-        };
-        _cameraView.OnDetectionFinished += OnBarcodeDetected;
-
+{
+    CameraEnabled = false,
+    VibrationOnDetected = true
+};
+_cameraView.OnDetectionFinished += OnBarcodeDetected;
         _scannerStatus = new Label
         {
             Text = "Наведите на код ЧЗ",
@@ -165,15 +159,18 @@ public class ScanPage : ContentPage
         _cameraView.CameraEnabled = false;
     }
 
-    // ✅ Обработчик ML Kit
+    //  Обработчик ML Kit
     private void OnBarcodeDetected(object? sender, OnDetectionFinishedEventArg e)
-    {
-        if (e.BarcodeResults == null || e.BarcodeResults.Length == 0) return;
+{
+    //  Count вместо Length — HashSet
+    if (e.BarcodeResults == null || e.BarcodeResults.Count == 0) return;
 
-        var result = e.BarcodeResults.FirstOrDefault();
-        if (result == null) return;
+    var result = e.BarcodeResults.FirstOrDefault();
+    if (result == null) return;
 
-        var raw = result.RawValue ?? "";
+    // RawValue для DataMatrix, DisplayValue как fallback
+    var raw = result.RawValue ?? result.DisplayValue ?? "";
+    if (string.IsNullOrWhiteSpace(raw)) return;
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
