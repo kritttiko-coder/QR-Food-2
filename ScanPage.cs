@@ -1,10 +1,8 @@
+using BarcodeScanning;
 using FoodExpiryApp.Models;
 using FoodExpiryApp.Services;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
-using System.Text.RegularExpressions;
-using ZXing.Net.Maui;
-using ZXing.Net.Maui.Controls;
 
 namespace FoodExpiryApp;
 
@@ -23,7 +21,7 @@ public class ScanPage : ContentPage
     private Product _current = new();
 
     // === Основные вью ===
-    private CameraBarcodeReaderView _scanner = null!;
+    private CameraView _cameraView = null!;
     private Grid _photoPromptOverlay = null!;
     private VerticalStackLayout _loadingView = null!;
     private Grid _confirmViewOverlay = null!;
@@ -31,7 +29,7 @@ public class ScanPage : ContentPage
     private Button _skipBtn = null!;
     private Border _scanFrame = null!;
 
-    // === Элементы формы подтверждения ===
+    // === Элементы формы ===
     private Image _productImage = null!;
     private Label _noPhotoLabel = null!;
     private Label _gtinLabel = null!;
@@ -52,19 +50,18 @@ public class ScanPage : ContentPage
 
     private void BuildUI()
     {
-        _scanner = new CameraBarcodeReaderView
+        // ✅ CAMERA VIEW (ML Kit) вместо ZXing
+        _cameraView = new CameraView
         {
-            IsDetecting = false,
-            IsVisible = true,
-            Options = new BarcodeReaderOptions
-            {
-                Formats = BarcodeFormat.DataMatrix | BarcodeFormat.QrCode | BarcodeFormat.Ean13,
-                AutoRotate = true,
-                Multiple = false,
-                TryHarder = true
-            }
+            CameraEnabled = false,
+            VibrationOnDetected = true,
+            CaptureQuality = CaptureQuality.High,
+            BarcodeSymbologies =
+                BarcodeSymbologies.FormatDataMatrix |
+                BarcodeSymbologies.FormatQrCode |
+                BarcodeSymbologies.FormatEan13
         };
-        _scanner.BarcodesDetected += OnBarcodeDetected;
+        _cameraView.OnDetectionFinished += OnBarcodeDetected;
 
         _scannerStatus = new Label
         {
@@ -78,7 +75,6 @@ public class ScanPage : ContentPage
             Margin = new Thickness(20, 50, 20, 0)
         };
 
-        // ✅ 1. РАМКА И ПОДСКАЗКА ДЛЯ СКАНИРОВАНИЯ
         _scanFrame = new Border
         {
             WidthRequest = 260,
@@ -100,7 +96,7 @@ public class ScanPage : ContentPage
             FontSize = 13,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
-            Margin = new Thickness(0, 300, 0, 0) // Чуть ниже рамки
+            Margin = new Thickness(0, 300, 0, 0)
         };
 
         _skipBtn = new Button
@@ -121,9 +117,9 @@ public class ScanPage : ContentPage
         _confirmViewOverlay = BuildConfirmView();
 
         var overlay = new Grid();
-        overlay.Add(_scanner);
-        overlay.Add(_scanFrame);       // Рамка
-        overlay.Add(scanHint);         // Подсказка
+        overlay.Add(_cameraView);
+        overlay.Add(_scanFrame);
+        overlay.Add(scanHint);
         overlay.Add(_scannerStatus);
         overlay.Add(_skipBtn);
         overlay.Add(_photoPromptOverlay);
@@ -145,43 +141,71 @@ public class ScanPage : ContentPage
         UpdateVisibility();
     }
 
-    private void OnBarcodeDetected(object? sender, BarcodeDetectionEventArgs e)
+    protected override async void OnAppearing()
     {
-        var result = e.Results?.FirstOrDefault();
+        base.OnAppearing();
+
+        var status = await Permissions.RequestAsync<Permissions.Camera>();
+        if (status != PermissionStatus.Granted)
+        {
+            await DisplayAlert("Ошибка", "Нужно разрешение на камеру", "OK");
+            await Navigation.PopAsync();
+            return;
+        }
+
+        if (_phase == ScanPhase.AwaitingCode)
+        {
+            _cameraView.CameraEnabled = true;
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _cameraView.CameraEnabled = false;
+    }
+
+    // ✅ Обработчик ML Kit
+    private void OnBarcodeDetected(object? sender, OnDetectionFinishedEventArg e)
+    {
+        if (e.BarcodeResults == null || e.BarcodeResults.Length == 0) return;
+
+        var result = e.BarcodeResults.FirstOrDefault();
         if (result == null) return;
 
-        var raw = result.Value ?? string.Empty;
+        var raw = result.RawValue ?? "";
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // ✅ 1. ФИКСАЦИЯ КАМЕРЫ
-            _scanner.IsDetecting = false;
-            _scanner.IsVisible = false; // Прячем камеру, чтобы не было "застывших" кадров
+            // Фиксируем камеру (она стопорится, картинка замирает)
+            _cameraView.CameraEnabled = false;
 
-            var gtinMatch = Regex.Match(raw, @"01(\d{14})");
-            var serialMatch = Regex.Match(raw, @"21([^\x1D]+)");
+            var parsed = _dm.TryParse(raw);
 
-            if (gtinMatch.Success) _gtin = gtinMatch.Groups[1].Value;
-            if (serialMatch.Success) _serial = serialMatch.Groups[1].Value;
-
-            if (string.IsNullOrEmpty(_gtin) && raw.Length > 0 && raw.All(char.IsDigit))
-                _gtin = raw;
+            if (parsed != null)
+            {
+                _gtin = parsed.Value.Gtin;
+                _serial = parsed.Value.Serial;
+            }
+            else if (raw.Length > 0 && raw.All(char.IsDigit))
+            {
+                _gtin = raw; // EAN13
+            }
+            else
+            {
+                // Не ЧЗ и не EAN13 — продолжаем сканировать
+                _cameraView.CameraEnabled = true;
+                return;
+            }
 
             _phase = ScanPhase.AwaitingPhoto;
             UpdateVisibility();
         });
     }
 
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        _scanner.IsDetecting = false;
-    }
-
     private void OnSkipCode(object? s, EventArgs e)
     {
-        _scanner.IsDetecting = false;
-        _scanner.IsVisible = false;
+        _cameraView.CameraEnabled = false;
         _phase = ScanPhase.AwaitingPhoto;
         UpdateVisibility();
     }
@@ -226,13 +250,13 @@ public class ScanPage : ContentPage
     private async Task ProcessAsync()
     {
         DateTime? expiry = null;
-        try 
-        { 
-            if (_expiryPhoto != null) expiry = await _ocr.ReadFromPhotoAsync(_expiryPhoto); 
-        } 
-        catch (Exception ex) 
-        { 
-            System.Diagnostics.Debug.WriteLine($"OCR Error: {ex.Message}"); 
+        try
+        {
+            if (_expiryPhoto != null) expiry = await _ocr.ReadFromPhotoAsync(_expiryPhoto);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OCR Error: {ex.Message}");
         }
 
         ProductInfo? info = null;
@@ -253,18 +277,17 @@ public class ScanPage : ContentPage
             Barcode = _gtin ?? "",
             Gtin = _gtin,
             Serial = _serial,
-            ExpiryDate = expiry ?? DateTime.Today.AddDays(7), // ✅ 3. Честная дата из OCR
+            ExpiryDate = expiry ?? DateTime.Today.AddDays(7),
             RemoteImageUrl = info?.ImageUrl,
             LocalImagePath = localPath
         };
 
-        // Заполнение UI
         _nameEntry.Text = _current.Name;
         _brandEntry.Text = _current.Brand;
         _volumeEntry.Text = _current.Volume;
-        _datePicker.Date = _current.ExpiryDate; // Подставляем дату из OCR
+        _datePicker.Date = _current.ExpiryDate;
         _gtinLabel.Text = $"GTIN: {_gtin}\nSerial: {_serial}";
-        
+
         if (expiry == null)
             _gtinLabel.Text += "\n⚠️ Дата не распознана, проверьте вручную.";
 
@@ -292,7 +315,6 @@ public class ScanPage : ContentPage
         _current.Category = _categoryPicker.SelectedItem as string ?? "Другое";
         _current.ExpiryDate = _datePicker.Date;
 
-        // ✅ 5. СОХРАНЕНИЕ ЦЕНЫ
         if (double.TryParse(_priceEntry.Text, out double price))
             _current.Price = price;
         else
@@ -306,11 +328,11 @@ public class ScanPage : ContentPage
     {
         bool isScanning = _phase == ScanPhase.AwaitingCode;
 
-        _scanner.IsVisible = isScanning;
+        _cameraView.IsVisible = isScanning;
         _scanFrame.IsVisible = isScanning;
         _scannerStatus.IsVisible = isScanning;
         _skipBtn.IsVisible = isScanning;
-        
+
         _photoPromptOverlay.IsVisible = _phase == ScanPhase.AwaitingPhoto;
         _loadingView.IsVisible = _phase == ScanPhase.Processing;
         _confirmViewOverlay.IsVisible = _phase == ScanPhase.Confirming;
@@ -318,11 +340,10 @@ public class ScanPage : ContentPage
         if (isScanning)
         {
             _scannerStatus.Text = "Наведите на код ЧЗ";
-            _scanner.IsDetecting = true;
+            _cameraView.CameraEnabled = true;
         }
     }
 
-    // ✅ 2. КРАСИВЫЙ ПОПАП "КОД РАСПОЗНАН"
     private Grid BuildPhotoPrompt()
     {
         var title = new Label
@@ -404,7 +425,6 @@ public class ScanPage : ContentPage
         };
     }
 
-    // ✅ 4. КРАСИВАЯ ЦЕНТРАЛЬНАЯ КАРТОЧКА ПОДТВЕРЖДЕНИЯ
     private Grid BuildConfirmView()
     {
         _productImage = new Image { HeightRequest = 140, Aspect = Aspect.AspectFit, IsVisible = false };
@@ -468,7 +488,6 @@ public class ScanPage : ContentPage
         _volumeEntry = new Entry { Placeholder = "Объём (0.5 л)", HeightRequest = 46 };
         ThemeManager.BindEntry(_volumeEntry);
 
-        // ✅ 5. НОВОЕ ПОЛЕ ЦЕНЫ
         _priceEntry = new Entry { Placeholder = "Цена (руб)", HeightRequest = 46, Keyboard = Keyboard.Numeric };
         ThemeManager.BindEntry(_priceEntry);
 
