@@ -109,30 +109,6 @@ public class ScanPage : ContentPage
 }
     protected override void OnDisappearing() { base.OnDisappearing(); _scanner.IsDetecting = false; }
 
-    private void OnBarcodeDetected(object? sender, BarcodeDetectionEventArgs e)
-    {
-        if (_phase != ScanPhase.AwaitingCode) return;
-        var hit = e.Results.FirstOrDefault();
-        if (hit == null) return;
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            var parsed = _dm.TryParse(hit.Value);
-            if (parsed != null)
-            {
-                _gtin = parsed.Value.Gtin;
-                _serial = parsed.Value.Serial;
-                _scannerStatus.Text = $"Код ЧЗ распознан!\nGTIN: {_gtin}";
-                _scanner.IsDetecting = false;
-                Task.Delay(800).ContinueWith(_ => MainThread.BeginInvokeOnMainThread(() => { _phase = ScanPhase.AwaitingPhoto; UpdateVisibility(); }));
-            }
-            else
-            {
-                _scannerStatus.Text = $"Найден {hit.Format}, но не ЧЗ";
-            }
-        });
-    }
-
     private void OnSkipCode(object? s, EventArgs e)
     {
         _scanner.IsDetecting = false;
