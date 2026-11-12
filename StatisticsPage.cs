@@ -145,28 +145,37 @@ public class StatisticsPage : ContentPage
     }
 
     private void UpdateCostDisplay()
+{
+    if (!_costSwitch.IsToggled)
     {
-        if (!_costSwitch.IsToggled)
-        {
-            _lblCost.Text = "≈ 0 ₽";
-            _costChartView.Drawable = null;
-            _costChartView.Invalidate();
-            return;
-        }
-
-        var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
-        double estimatedCost = _allProducts.Sum(p => priceService.GetPrice(p));
-        _lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
-
-        // Строим реальный график расходов
-        var costDrawable = new CostChartDrawable { AccentColor = ThemeManager.AccentColor };
-        var vals = new float[10];
-        var rnd = new Random();
-        for (int i = 0; i < 10; i++) vals[i] = (float)(estimatedCost / 10 + rnd.Next(-10, 10));
-        costDrawable.Values = vals;
-        _costChartView.Drawable = costDrawable;
+        _lblCost.Text = $"≈ 0 {new PriceService().CurrencySymbol}";
+        _costChartView.Drawable = null;
         _costChartView.Invalidate();
+        return;
     }
+
+    var priceService = IPlatformApplication.Current!.Services.GetService<PriceService>()!;
+    double estimatedCost = _allProducts.Sum(p => priceService.GetPrice(p));
+    _lblCost.Text = $"≈ {estimatedCost:N0} {priceService.CurrencySymbol}";
+    
+    var costDrawable = new CostChartDrawable { AccentColor = ThemeManager.AccentColor };
+    var vals = new float[7];
+    var labels = new string[] { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс" };
+    
+    if (estimatedCost > 0)
+    {
+        for (int i = 0; i < 7; i++) vals[i] = (float)(estimatedCost / 7.0);
+    }
+    else
+    {
+        for (int i = 0; i < 7; i++) vals[i] = 0;
+    }
+    
+    costDrawable.Values = vals;
+    costDrawable.Labels = labels;
+    _costChartView.Drawable = costDrawable;
+    _costChartView.Invalidate();
+}
 
     private async Task LoadDataAsync()
     {
