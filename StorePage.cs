@@ -76,8 +76,16 @@ public class StorePage : ContentPage
         searchFrame.SetDynamicResource(VisualElement.BackgroundColorProperty, ThemeManager.Surface);
 
         // --- ОСНОВНАЯ СЕТКА (Слева список, Справа карта) ---
-        var mainGrid = new Grid { ColumnDefinitions = { new ColumnDefinition(0.48, GridUnitType.Star), new ColumnDefinition(0.52, GridUnitType.Star) }, ColumnSpacing = 10, HeightRequest = 300 };
-
+        var mainGrid = new Grid 
+{ 
+    ColumnDefinitions = 
+    { 
+        new ColumnDefinition { Width = new GridLength(0.48, GridUnitType.Star) }, 
+        new ColumnDefinition { Width = new GridLength(0.52, GridUnitType.Star) } 
+    }, 
+    ColumnSpacing = 10, 
+    HeightRequest = 300 
+};
         // 1. Левая панель (Список)
         var shopList = new VerticalStackLayout { Spacing = 8 };
         var shopHeader = new HorizontalStackLayout { Spacing = 8, Children = { new Image { Source = "icon_basket.png", WidthRequest = 20, HeightRequest = 20 }.BindTint(ThemeManager.AccentColor), new Label { Text = Loc.T("ShoppingList"), FontSize = 16, FontAttributes = FontAttributes.Bold }.BindText() } };
