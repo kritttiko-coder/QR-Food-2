@@ -1,6 +1,4 @@
 using Microsoft.Maui.Graphics;
-using System;
-using System.Linq;
 
 namespace FoodExpiryApp;
 
@@ -13,67 +11,32 @@ public class LineChartDrawable : IDrawable
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
         if (Values == null || Values.Length < 2) return;
+        float pl = 25, pb = 20;
+        float w = dirtyRect.Width - pl, h = dirtyRect.Height - pb;
+        float max = Values.Max(); if (max == 0) max = 1;
+        max = (float)(Math.Ceiling(max / 10.0) * 10); if (max == 0) max = 10;
 
-        float paddingLeft = 25;
-        float paddingBottom = 20;
-        float chartWidth = dirtyRect.Width - paddingLeft;
-        float chartHeight = dirtyRect.Height - paddingBottom;
-
-        float maxVal = Values.Max();
-        if (maxVal == 0) maxVal = 1;
-        maxVal = (float)(Math.Ceiling(maxVal / 10.0) * 10);
-        if (maxVal == 0) maxVal = 10;
-
-        canvas.FontSize = 9;
-        canvas.FontColor = Colors.Gray;
-        canvas.StrokeSize = 0.5f;
-        canvas.StrokeColor = Colors.Gray.WithAlpha(0.2f);
-
-        int ySteps = 3;
-        for (int i = 0; i <= ySteps; i++)
-        {
-            float y = chartHeight - (i * (chartHeight / ySteps));
-            float valY = (i * (maxVal / ySteps));
-            canvas.DrawLine(paddingLeft, y, dirtyRect.Width, y);
-            canvas.DrawString(valY.ToString("F0"), 0, y - 5, paddingLeft - 5, 10, HorizontalAlignment.Right, VerticalAlignment.Center);
+        canvas.FontSize = 9; canvas.FontColor = Colors.Gray;
+        canvas.StrokeSize = 0.5f; canvas.StrokeColor = Colors.Gray.WithAlpha(0.2f);
+        for (int i = 0; i <= 3; i++) {
+            float y = h - (i * (h / 3)); float val = (i * (max / 3));
+            canvas.DrawLine(pl, y, dirtyRect.Width, y);
+            canvas.DrawString(val.ToString("F0"), 0, y - 5, pl - 5, 10, HorizontalAlignment.Right, VerticalAlignment.Center);
         }
 
-        float stepX = chartWidth / (Values.Length - 1);
-        var path = new PathF();
-        path.MoveTo(paddingLeft, chartHeight - (Values[0] / maxVal * chartHeight));
-
-        for (int i = 1; i < Values.Length; i++)
-        {
-            float x = paddingLeft + (i * stepX);
-            float y = chartHeight - (Values[i] / maxVal * chartHeight);
-            path.LineTo(x, y);
-        }
-
-        var fillPath = new PathF(path);
-        fillPath.LineTo(dirtyRect.Width, chartHeight);
-        fillPath.LineTo(paddingLeft, chartHeight);
-        fillPath.Close();
+        float stepX = w / (Values.Length - 1);
+        var path = new PathF(); path.MoveTo(pl, h - (Values[0] / max * h));
+        for (int i = 1; i < Values.Length; i++) path.LineTo(pl + i * stepX, h - (Values[i] / max * h));
+        var fill = new PathF(path); fill.LineTo(dirtyRect.Width, h); fill.LineTo(pl, h); fill.Close();
         
-        canvas.FillColor = AccentColor.WithAlpha(0.2f);
-        canvas.FillPath(fillPath);
-
-        canvas.StrokeSize = 3;
-        canvas.StrokeColor = AccentColor;
-        canvas.StrokeLineJoin = LineJoin.Round;
-        canvas.DrawPath(path);
+        canvas.FillColor = AccentColor.WithAlpha(0.2f); canvas.FillPath(fill);
+        canvas.StrokeSize = 3; canvas.StrokeColor = AccentColor; canvas.StrokeLineJoin = LineJoin.Round; canvas.DrawPath(path);
 
         canvas.FillColor = Colors.White;
-        for (int i = 0; i < Values.Length; i++)
-        {
-            float x = paddingLeft + (i * stepX);
-            float y = chartHeight - (Values[i] / maxVal * chartHeight);
+        for (int i = 0; i < Values.Length; i++) {
+            float x = pl + i * stepX, y = h - (Values[i] / max * h);
             canvas.FillCircle(x, y, 4);
-
-            if (i < Labels.Length)
-            {
-                canvas.FontColor = Colors.Gray;
-                canvas.DrawString(Labels[i], x - 15, chartHeight + 5, 30, 15, HorizontalAlignment.Center, VerticalAlignment.Top);
-            }
+            if (i < Labels.Length) { canvas.FontColor = Colors.Gray; canvas.DrawString(Labels[i], x - 15, h + 5, 30, 15, HorizontalAlignment.Center, VerticalAlignment.Top); }
         }
     }
 }
@@ -87,76 +50,61 @@ public class DonutChartDrawable : IDrawable
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
         if (Values == null || Values.Length == 0) return;
-        float total = Values.Sum();
-        if (total == 0) return;
+        float total = Values.Sum(); if (total == 0) return;
+        float cx = dirtyRect.Center.X, cy = dirtyRect.Center.Y;
+        float r = Math.Min(dirtyRect.Width, dirtyRect.Height) / 2.2f;
+        float ir = r * 0.65f;
+        float start = -90;
 
-        float centerX = dirtyRect.Center.X;
-        float centerY = dirtyRect.Center.Y;
-        float radius = Math.Min(dirtyRect.Width, dirtyRect.Height) / 2.2f;
-        float innerRadius = radius * 0.65f;
-
-        float startAngle = -90;
-
-        for (int i = 0; i < Values.Length; i++)
-        {
-            float sweepAngle = (Values[i] / total) * 360;
+        for (int i = 0; i < Values.Length; i++) {
+            float sweep = (Values[i] / total) * 360;
             canvas.FillColor = Colors[i % Colors.Length];
-            
-            var path = new PathF();
-            path.MoveTo(centerX, centerY);
-            path.AddArc(centerX - radius, centerY - radius, radius * 2, radius * 2, startAngle, startAngle + sweepAngle, true);
-            path.Close();
-            canvas.FillPath(path);
-
-            startAngle += sweepAngle;
+            var p = new PathF(); p.MoveTo(cx, cy);
+            p.AddArc(cx - r, cy - r, r * 2, r * 2, start, start + sweep, true); p.Close();
+            canvas.FillPath(p); start += sweep;
         }
-
-        canvas.FillColor = BackgroundColor; 
-        canvas.FillCircle(centerX, centerY, innerRadius);
+        canvas.FillColor = BackgroundColor; canvas.FillCircle(cx, cy, ir);
     }
 }
 
 public class CostChartDrawable : IDrawable
 {
     public float[] Values { get; set; } = Array.Empty<float>();
+    public string[] Labels { get; set; } = Array.Empty<string>();
     public Color AccentColor { get; set; } = Colors.Purple;
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
         if (Values == null || Values.Length < 2) return;
+        float pl = 25, pb = 20;
+        float w = dirtyRect.Width - pl, h = dirtyRect.Height - pb;
+        float max = Values.Max(); if (max == 0) max = 1;
+
+        canvas.FontSize = 9; canvas.FontColor = Colors.Gray;
+        canvas.StrokeSize = 0.5f; canvas.StrokeColor = Colors.Gray.WithAlpha(0.2f);
         
-        float w = dirtyRect.Width;
-        float h = dirtyRect.Height;
-        float max = Values.Max();
-        if (max == 0) max = 1;
+        // Оси
+        canvas.DrawLine(pl, 0, pl, h); // Y
+        canvas.DrawLine(pl, h, dirtyRect.Width, h); // X
 
-        var path = new PathF();
-        float stepX = w / (Values.Length - 1);
-        path.MoveTo(0, h - (Values[0] / max * h));
-
-        for (int i = 1; i < Values.Length; i++)
-        {
-            float x = i * stepX;
-            float y = h - (Values[i] / max * h);
-            path.LineTo(x, y);
+        for (int i = 0; i <= 2; i++) {
+            float y = h - (i * (h / 2)); float val = (i * (max / 2));
+            canvas.DrawString(val.ToString("F0"), 0, y - 5, pl - 5, 10, HorizontalAlignment.Right, VerticalAlignment.Center);
+            if (i > 0) canvas.DrawLine(pl, y, dirtyRect.Width, y);
         }
 
-        var fillPath = new PathF(path);
-        fillPath.LineTo(w, h);
-        fillPath.LineTo(0, h);
-        fillPath.Close();
+        float stepX = w / (Values.Length - 1);
+        var path = new PathF(); path.MoveTo(pl, h - (Values[0] / max * h));
+        for (int i = 1; i < Values.Length; i++) path.LineTo(pl + i * stepX, h - (Values[i] / max * h));
+        
+        var fill = new PathF(path); fill.LineTo(dirtyRect.Width, h); fill.LineTo(pl, h); fill.Close();
+        canvas.FillColor = AccentColor.WithAlpha(0.2f); canvas.FillPath(fill);
+        
+        canvas.StrokeSize = 2; canvas.StrokeColor = AccentColor; canvas.DrawPath(path);
 
-        canvas.SetFillPaint(new LinearGradientPaint
-        {
-            StartColor = AccentColor.WithAlpha(0.4f),
-            EndColor = Colors.Transparent,
-            StartPoint = new Point(0, 0),
-            EndPoint = new Point(0, 1)
-        }, dirtyRect);
-        canvas.FillPath(fillPath);
-
-        canvas.StrokeColor = AccentColor;
-        canvas.StrokeSize = 3;
-        canvas.DrawPath(path);
+        for (int i = 0; i < Labels.Length; i++) {
+            float x = pl + i * stepX;
+            canvas.DrawString(Labels[i], x - 15, h + 5, 30, 15, HorizontalAlignment.Center, VerticalAlignment.Top);
+        }
     }
 }
