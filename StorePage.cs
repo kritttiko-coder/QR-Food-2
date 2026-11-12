@@ -7,6 +7,7 @@ using Microsoft.Maui.Devices.Sensors;
 using CommunityToolkit.Maui.Behaviors;
 using System.Text.Json;
 using System.Globalization;
+using Microsoft.Maui.Layouts;
 
 namespace FoodExpiryApp;
 
