@@ -52,7 +52,7 @@ public class AccountPage : ContentPage
             var photo = await MediaPicker.Default.PickPhotoAsync();
             if (photo != null)
             {
-                var path = Path.Combine(FileSystem.AppDataDirectory, "user_avatar.jpg");
+                var path = System.IO.Path.Combine(FileSystem.AppDataDirectory, "user_avatar.jpg");
                 await using (var src = await photo.OpenReadAsync()) await using (var dst = File.Create(path)) await src.CopyToAsync(dst);
                 Preferences.Default.Set("user_avatar", path);
                 _userAvatar = ImageSource.FromFile(path);
