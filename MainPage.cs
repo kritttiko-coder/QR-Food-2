@@ -148,11 +148,13 @@ public class MainPage : ContentPage
         var imageSize = iconOnly ? 60 : compact ? 80 : 100;
 
         var imgService = IPlatformApplication.Current!.Services.GetService<Services.ProductImageService>();
-        var imgSource = imgService?.ResolveImageSource(product);
-        View imageContent = imgSource != null 
-            ? new Image { Source = imgSource, Aspect = Aspect.AspectFill, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill } 
-            : new Label { Text = product.Category switch { "Молочные" => "◉", "Напитки" => "◇", "Мясо и рыба" => "◈", "Овощи и фрукты" => "❋", "Заморозка" => "❄", _ => "□" }, FontSize = iconOnly ? 24 : compact ? 32 : 44, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center, TextColor = Colors.White };
+var imgSource = imgService?.ResolveImageSource(product);
 
+// Замена эмодзи на картинку
+View imageContent = imgSource != null 
+    ? new Image { Source = imgSource, Aspect = Aspect.AspectFill, HorizontalOptions = LayoutOptions.Fill, VerticalOptions = LayoutOptions.Fill } 
+    : CreatePlaceholderIcon(iconOnly ? 32 : compact ? 42 : 54);
+    
         var imagePlaceholder = new Border { WidthRequest = imageSize, HeightRequest = imageSize, BackgroundColor = Colors.Black, StrokeThickness = 0, StrokeShape = new RoundRectangle { CornerRadius = 13 }, Padding = 0, Content = imageContent };
         var name = new Label { Text = product.Name, FontSize = iconOnly ? 13 : compact ? 15 : 19, FontAttributes = FontAttributes.Bold, LineBreakMode = LineBreakMode.TailTruncation };
         ThemeManager.BindText(name);
@@ -268,4 +270,22 @@ var controls = new HorizontalStackLayout
         if (densityImage == null) return;
         densityImage.Source = density switch { 0 => "icon_layout_2.png", 1 => "icon_layout_3.png", 2 => "icon_layout_4.png", _ => "icon_layout_2.png" };
     }
+
+    private View CreatePlaceholderIcon(double size)
+{
+    var img = new Image 
+    { 
+        Source = "icon_placeholder.png", 
+        WidthRequest = size, 
+        HeightRequest = size,
+        HorizontalOptions = LayoutOptions.Center,
+        VerticalOptions = LayoutOptions.Center,
+        Aspect = Aspect.AspectFit
+    };
+    img.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+    return img;
+}
+
+
+    
 }
