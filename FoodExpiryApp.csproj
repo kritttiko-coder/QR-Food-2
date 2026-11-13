@@ -30,7 +30,7 @@
 
     <ItemGroup>
         <!-- Иконки интерфейса (кнопки, меню, превью в настройках) -->
-        <MauiImage Include="Resources\Images\*" />
+        <MauiImage Include="Resources/Images/*" />
 
         <!-- Шрифты (оставлено для будущего) -->
         <MauiFont Include="Resources\Fonts\*" />
