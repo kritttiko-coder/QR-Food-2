@@ -267,17 +267,19 @@ _cameraView.OnDetectionFinished += OnBarcodeDetected;
         }
 
         _current = new Product
-        {
-            Name = info?.Name ?? "",
-            Brand = info?.Brand ?? "",
-            Volume = info?.Volume ?? "",
-            Barcode = _gtin ?? "",
-            Gtin = _gtin,
-            Serial = _serial,
-            ExpiryDate = expiry ?? DateTime.Today.AddDays(7),
-            RemoteImageUrl = info?.ImageUrl,
-            LocalImagePath = localPath
-        };
+{
+    Name = !string.IsNullOrWhiteSpace(info?.Name) 
+        ? info.Name 
+        : $"Товар {_gtin?[^6..] ?? "?"}", // fallback по последним 6 цифрам GTIN
+    Brand = info?.Brand ?? "",
+    Volume = info?.Volume ?? "",
+    Barcode = _gtin ?? "",
+    Gtin = _gtin,
+    Serial = _serial,
+    ExpiryDate = expiry ?? DateTime.Today.AddDays(7),
+    RemoteImageUrl = info?.ImageUrl,
+    LocalImagePath = localPath
+};
 
         _nameEntry.Text = _current.Name;
         _brandEntry.Text = _current.Brand;
@@ -294,11 +296,18 @@ _cameraView.OnDetectionFinished += OnBarcodeDetected;
             _productImage.IsVisible = true;
             _noPhotoLabel.IsVisible = false;
         }
+
+        // Если OFF ничего не нашёл — предупреждаем пользователя
+if (info == null && !string.IsNullOrEmpty(_gtin))
+{
+    _gtinLabel.Text = $"GTIN: {_gtin}\nSerial: {_serial}\n⚠️ Товар не найден в Open Food Facts. Введите название вручную.";
+}      
         else
         {
             _productImage.IsVisible = false;
             _noPhotoLabel.IsVisible = true;
         }
+        
 
         _phase = ScanPhase.Confirming;
         UpdateVisibility();
