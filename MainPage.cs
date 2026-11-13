@@ -174,33 +174,86 @@ public class MainPage : ContentPage
         if (!iconOnly) { textContent.Children.Add(details); textContent.Children.Add(expiryLabels); } else { textContent.Children.Add(expiryLabels); }
 
         // КНОПКИ В КРАСИВОЙ РАМКЕ
-        var btnStyle = new Action<Border>(b => { b.StrokeThickness = 1; b.Stroke = ThemeManager.AccentColor; b.StrokeShape = new RoundRectangle { CornerRadius = 8 }; b.BackgroundColor = Color.FromRgba(0,0,0,0.2f); b.Padding = 4; b.WidthRequest = 40; b.HeightRequest = 40; });
+        //  Стиль для кнопок-иконок (рамка, размер, фон)
+var btnStyle = new Action<Border>(b => 
+{ 
+    b.StrokeThickness = 1; 
+    b.Stroke = ThemeManager.AccentColor; 
+    b.StrokeShape = new RoundRectangle { CornerRadius = 8 }; 
+    b.BackgroundColor = Color.FromRgba(0,0,0,0.2f); 
+    b.Padding = 4; 
+    b.WidthRequest = 40; 
+    b.HeightRequest = 40; 
+});
 
-        var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 35, HeightRequest = 35, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-        deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") });
-        var deleteButton = new Border { Content = deleteImg }; btnStyle(deleteButton);
-        deleteButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => {
-            var options = items.Count > 1 ? new[] { Loc.T("DeleteOne"), Loc.T("DeleteAll") } : new[] { Loc.T("DeleteProduct") };
-            var choice = await DisplayActionSheet(Loc.T("Delete"), Loc.T("Cancel"), null, options);
-            if (choice == Loc.T("DeleteOne") || choice == Loc.T("DeleteProduct")) await repo.Delete(items[0]);
-            else if (choice == Loc.T("DeleteAll")) foreach (var item in items) await repo.Delete(item);
-            else return;
-            all = await repo.All(); Render();
-        }) });
+//  Кнопка смены фото (камера)
+var cameraImg = new Image 
+{ 
+    Source = "icon_camera.png", 
+    WidthRequest = 35, 
+    HeightRequest = 35, 
+    HorizontalOptions = LayoutOptions.Center, 
+    VerticalOptions = LayoutOptions.Center 
+};
+cameraImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+var cameraButton = new Border { Content = cameraImg }; 
+btnStyle(cameraButton);
+cameraButton.GestureRecognizers.Add(new TapGestureRecognizer 
+{ 
+    Command = new Command(async () => 
+    {
+        var imgService = IPlatformApplication.Current!.Services.GetService<Services.ProductImageService>();
+        if (imgService == null) return;
+        
+        var key = product.Serial ?? product.Id.ToString();
+        var path = await imgService.CaptureOwnPhotoAsync(key);
+        if (path != null)
+        {
+            product.LocalImagePath = path;
+            await repo.Save(product);
+            all = await repo.All();
+            Render();
+        }
+    }) 
+});
 
-        var menuImg = new Image { Source = "icon_dots.png", WidthRequest = 35, HeightRequest = 35, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
-        menuImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
-        var menuButton = new Border { Content = menuImg }; btnStyle(menuButton);
-        menuButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => {
-            var options = new List<string> { Loc.T("Edit"), Loc.T("DeleteOne") };
-            if (items.Count > 1) options.Add(Loc.T("DeleteAll"));
-            var choice = await DisplayActionSheet(product.Name, Loc.T("Cancel"), null, options.ToArray());
-            if (choice == Loc.T("Edit")) await Navigation.PushAsync(new ProductEditPage(repo, items[0]));
-            else if (choice == Loc.T("DeleteOne")) { await repo.Delete(items[0]); all = await repo.All(); Render(); }
-            else if (choice == Loc.T("DeleteAll")) { foreach (var item in items) await repo.Delete(item); all = await repo.All(); Render(); }
-        }) });
+// Кнопка меню
+var menuImg = new Image { Source = "icon_dots.png", WidthRequest = 35, HeightRequest = 35, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+menuImg.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor });
+var menuButton = new Border { Content = menuImg }; 
+btnStyle(menuButton);
+menuButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => {
+    var options = new List<string> { Loc.T("Edit"), Loc.T("DeleteOne") };
+    if (items.Count > 1) options.Add(Loc.T("DeleteAll"));
+    var choice = await DisplayActionSheet(product.Name, Loc.T("Cancel"), null, options.ToArray());
+    if (choice == Loc.T("Edit")) await Navigation.PushAsync(new ProductEditPage(repo, items[0]));
+    else if (choice == Loc.T("DeleteOne")) { await repo.Delete(items[0]); all = await repo.All(); Render(); }
+    else if (choice == Loc.T("DeleteAll")) { foreach (var item in items) await repo.Delete(item); all = await repo.All(); Render(); }
+}) });
 
-        var controls = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.End, Children = { menuButton, deleteButton } };
+// Кнопка удаления
+var deleteImg = new Image { Source = "icon_trash.png", WidthRequest = 35, HeightRequest = 35, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+deleteImg.Behaviors.Add(new IconTintColorBehavior { TintColor = Color.FromArgb("#FF647D") });
+var deleteButton = new Border { Content = deleteImg }; 
+btnStyle(deleteButton);
+deleteButton.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => {
+    var options = items.Count > 1 ? new[] { Loc.T("DeleteOne"), Loc.T("DeleteAll") } : new[] { Loc.T("DeleteProduct") };
+    var choice = await DisplayActionSheet(Loc.T("Delete"), Loc.T("Cancel"), null, options);
+    if (choice == Loc.T("DeleteOne") || choice == Loc.T("DeleteProduct")) await repo.Delete(items[0]);
+    else if (choice == Loc.T("DeleteAll")) foreach (var item in items) await repo.Delete(item);
+    else return;
+    all = await repo.All(); Render();
+}) });
+
+// ВСЕ ТРИ КНОПКИ ГОРИЗОНТАЛЬНО
+var controls = new HorizontalStackLayout 
+{ 
+    Spacing = 6, 
+    VerticalOptions = LayoutOptions.Center, 
+    HorizontalOptions = LayoutOptions.End, 
+    Children = { cameraButton, menuButton, deleteButton } 
+};
+        
         var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 10, VerticalOptions = LayoutOptions.Center };
         row.Add(imagePlaceholder, 0, 0); row.Add(textContent, 1, 0); row.Add(controls, 2, 0);
 
