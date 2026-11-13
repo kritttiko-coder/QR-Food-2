@@ -20,6 +20,21 @@ public sealed class ExpiryOcrService
     private static readonly string[] ExpiryKeywords = { "годен до", "годен", "годн", "гд", "exp", "expiry", "use by", "срок годн" };
     private static readonly string[] ProductionKeywords = { "изготов", "произв", "пр-ва", "пр ва", "дата пр", "mfg", "prod", "дата изг" };
 
+     // «18 месяцев», «6 мес.», «24 месяца»
+private static readonly Regex MonthsRelative = new(
+    @"(?<n>\d{1,2})\s*(?:месяц|мес)", 
+    RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+// «180 дней», «30 дн.»
+private static readonly Regex DaysRelative = new(
+    @"(?<n>\d{1,3})\s*(?:дн|день|дней)", 
+    RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+// «2 года», «3 лет»
+private static readonly Regex YearsRelative = new(
+    @"(?<n>\d{1,2})\s*(?:год|года|лет)", 
+    RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    
     private static IOcrService? _ocr;
 
     public async Task<DateTime?> ReadFromPhotoAsync(byte[] imageBytes, CancellationToken ct = default)
@@ -35,17 +50,37 @@ public sealed class ExpiryOcrService
     }
 
     private static DateTime? PickExpiryDate(string text)
+{
+    // сначала ищем относительные сроки (месяцы / дни / годы)
+    var monthMatch = MonthsRelative.Match(text);
+    if (monthMatch.Success && int.TryParse(monthMatch.Groups["n"].Value, out var months))
     {
-        var candidates = CollectDateCandidates(text);
-        if (candidates.Count == 0) return null;
+        return AppClock.Now.Date.AddMonths(months);
+    }
 
-        foreach (var c in candidates)
-            if (HasAny(c.ContextBefore, ExpiryKeywords)) return c.Date;
+    var yearMatch = YearsRelative.Match(text);
+    if (yearMatch.Success && int.TryParse(yearMatch.Groups["n"].Value, out var years))
+    {
+        return AppClock.Now.Date.AddYears(years);
+    }
 
-        var notProduction = candidates.Where(c => !HasAny(c.ContextBefore, ProductionKeywords)).ToList();
-        if (notProduction.Count == 0) return null;
-        if (notProduction.Count == 1) return notProduction[0].Date;
-        return notProduction.MaxBy(c => c.Date)!.Date;
+    var dayMatch = DaysRelative.Match(text);
+    if (dayMatch.Success && int.TryParse(dayMatch.Groups["n"].Value, out var days))
+    {
+        return AppClock.Now.Date.AddDays(days);
+    }
+
+    // Если относительных не нашли — идём по старым правилам (конкретные даты)
+    var candidates = CollectDateCandidates(text);
+    if (candidates.Count == 0) return null;
+
+    foreach (var c in candidates)
+        if (HasAny(c.ContextBefore, ExpiryKeywords)) return c.Date;
+
+    var notProduction = candidates.Where(c => !HasAny(c.ContextBefore, ProductionKeywords)).ToList();
+    if (notProduction.Count == 0) return null;
+    if (notProduction.Count == 1) return notProduction[0].Date;
+    return notProduction.MaxBy(c => c.Date)!.Date;
     }
 
     private static bool HasAny(string ctx, string[] words)
