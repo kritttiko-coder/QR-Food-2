@@ -1,9 +1,7 @@
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using Plugin.Maui.OCR;
-using Microsoft.Maui.Controls.Maps; 
 using BarcodeScanning;
-
 
 namespace FoodExpiryApp;
 
@@ -13,22 +11,40 @@ public static class MauiProgram
     {
         var builder = MauiApp.CreateBuilder();
 
-        // 1. Настраиваем сам MAUI и подключаем библиотеки (цепочка Use...)
+        // === MAUI + библиотеки ===
         builder
             .UseMauiApp<App>()
             .UseMauiCommunityToolkit()
-            .UseBarcodeScanning()   
-          //  .UseMauiMaps()
+            .UseBarcodeScanning()
             .UseOcr();
 
-        // 2. Регистрируем наши сервисы (отдельные команды)
-         builder.Services.AddSingleton<Services.ProductImageService>();
-         builder.Services.AddSingleton<ProductRepository>();
-         builder.Services.AddSingleton<Services.DataMatrixCaptureService>();
-         builder.Services.AddSingleton<Services.ExpiryOcrService>();
-         builder.Services.AddSingleton<Services.OpenFoodFactsClient>();
-         builder.Services.AddSingleton<Services.PriceService>();
-         builder.Services.AddSingleton<Services.StoreService>();
+        // === Базовые сервисы ===
+        builder.Services.AddSingleton<HttpClient>();
+        builder.Services.AddSingleton<ProductRepository>();
+        builder.Services.AddSingleton<Services.ProductImageService>();
+        builder.Services.AddSingleton<Services.DataMatrixCaptureService>();
+        builder.Services.AddSingleton<Services.ExpiryOcrService>();
+        builder.Services.AddSingleton<Services.OpenFoodFactsClient>();
+        builder.Services.AddSingleton<Services.PriceService>();
+        builder.Services.AddSingleton<Services.StoreService>();
+
+        // === Карты: кеш и оркестратор ===
+        builder.Services.AddSingleton<Services.Maps.PlacesCache>();
+        builder.Services.AddSingleton<Services.Maps.StoreSearchService>();
+
+        // === Map-провайдеры ===
+        builder.Services.AddSingleton<Services.Maps.IMapProvider, Services.Maps.Providers.OsmMapProvider>();
+        builder.Services.AddSingleton<Services.Maps.IMapProvider, Services.Maps.Providers.YandexMapProvider>();
+        builder.Services.AddSingleton<Services.Maps.IMapProvider, Services.Maps.Providers.TwoGisMapProvider>();
+        builder.Services.AddSingleton<Services.Maps.IMapProvider, Services.Maps.Providers.MapboxMapProvider>();
+        builder.Services.AddSingleton<Services.Maps.IMapProvider, Services.Maps.Providers.GoogleMapProvider>();
+
+        // === Places-провайдеры ===
+        builder.Services.AddSingleton<Services.Maps.IPlacesProvider, Services.Maps.Providers.OsmPlacesProvider>();
+        builder.Services.AddSingleton<Services.Maps.IPlacesProvider, Services.Maps.Providers.YandexPlacesProvider>();
+        builder.Services.AddSingleton<Services.Maps.IPlacesProvider, Services.Maps.Providers.TwoGisPlacesProvider>();
+        builder.Services.AddSingleton<Services.Maps.IPlacesProvider, Services.Maps.Providers.MapboxPlacesProvider>();
+        builder.Services.AddSingleton<Services.Maps.IPlacesProvider, Services.Maps.Providers.GooglePlacesProvider>();
 
 #if DEBUG
         builder.Logging.AddDebug();
