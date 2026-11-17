@@ -1,13 +1,14 @@
 using FoodExpiryApp.Models;
 using FoodExpiryApp.Services;
+using FoodExpiryApp.Services.Maps;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Devices.Sensors;
+using Microsoft.Maui.Layouts;
 using CommunityToolkit.Maui.Behaviors;
 using System.Text.Json;
 using System.Globalization;
-using Microsoft.Maui.Layouts;
 
 namespace FoodExpiryApp;
 
@@ -16,15 +17,17 @@ public class StorePage : ContentPage
     private readonly ProductRepository _repo;
     private readonly StoreService _storeService;
     private readonly PriceService? _priceService;
+    private readonly StoreSearchService _storeSearch;
 
     private VerticalStackLayout _shopItemsContainer = null!;
     private VerticalStackLayout _storesListLayout = null!;
     private Label _locText = null!;
     private Grid _rootGrid = null!;
+    private Controls.MiniMapView? _miniMap;
     private Location? _currentLocation;
 
     private List<ShoppingItem> _shoppingItems = new();
-    private List<StoreModel> _nearbyStores = new();
+    private IReadOnlyList<NearbyStore> _nearbyStores = Array.Empty<NearbyStore>();
     private string _searchText = "";
     private const string ShoppingListKey = "shopping_list";
     private const string CustomTemplatesKey = "store_custom_templates";
@@ -41,6 +44,12 @@ public class StorePage : ContentPage
         _storeService = IPlatformApplication.Current?.Services.GetService<StoreService>()
             ?? new StoreService();
         _priceService = IPlatformApplication.Current?.Services.GetService<PriceService>();
+
+        // StoreSearchService может быть не зарегистрирован в DI — тогда пустой список провайдеров
+        _storeSearch = IPlatformApplication.Current?.Services.GetService<StoreSearchService>()
+            ?? new StoreSearchService(
+                Enumerable.Empty<IPlacesProvider>(),
+                new PlacesCache());
 
         Title = Loc.T("StoreTitle");
         ThemeManager.BindPage(this);
@@ -88,7 +97,7 @@ public class StorePage : ContentPage
     {
         BackgroundColor = Color.FromArgb("#090811");
 
-        // Шапка: название, город и переход к карте.
+        // === ШАПКА ===
         var header = new Grid
         {
             ColumnDefinitions =
@@ -109,23 +118,17 @@ public class StorePage : ContentPage
             TextColor = Colors.White
         };
 
-        var locationRow = new HorizontalStackLayout
-        {
-            Spacing = 5,
-            VerticalOptions = LayoutOptions.Center
-        };
-        var pin = CreateTintedIcon("icon_pin.png", 19);
+        var locationRow = new HorizontalStackLayout { Spacing = 5, VerticalOptions = LayoutOptions.Center };
+        locationRow.Children.Add(CreateTintedIcon("icon_pin.png", 19));
         _locText = new Label
         {
-            Text = "Чита",
+            Text = "Поиск GPS...",
             TextColor = Color.FromArgb("#C99AFF"),
             FontSize = 14,
             VerticalOptions = LayoutOptions.Center
         };
-        var cityChevron = CreateTintedIcon("icon_chevron_down.png", 13);
-        locationRow.Children.Add(pin);
         locationRow.Children.Add(_locText);
-        locationRow.Children.Add(cityChevron);
+        locationRow.Children.Add(CreateTintedIcon("icon_chevron_down.png", 13));
         locationRow.GestureRecognizers.Add(new TapGestureRecognizer
         {
             Command = new Command(async () => await ShowCityPicker())
@@ -141,7 +144,7 @@ public class StorePage : ContentPage
         header.Add(locationRow, 1, 0);
         header.Add(mapButton, 2, 0);
 
-        // Общая строка поиска: фильтрует товары и ближайшие магазины.
+        // === ПОИСК ===
         var search = new SearchBar
         {
             Placeholder = "Поиск по магазинам или продуктам",
@@ -166,7 +169,7 @@ public class StorePage : ContentPage
             RenderStores();
         };
 
-        // Основная область: слева список покупок (40–45%), справа карта и магазины.
+        // === ОСНОВНАЯ СЕТКА ===
         var mainGrid = new Grid
         {
             ColumnDefinitions =
@@ -178,6 +181,7 @@ public class StorePage : ContentPage
             HeightRequest = 590
         };
 
+        // Левая панель — список покупок
         _shopItemsContainer = new VerticalStackLayout { Spacing = 17 };
         var shoppingHeader = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 0, 0, 8) };
         shoppingHeader.Children.Add(CreateTintedIcon("icon_basket.png", 23));
@@ -245,7 +249,7 @@ public class StorePage : ContentPage
         };
         mainGrid.Add(leftPanel, 0, 0);
 
-        // Правая колонка: карта сверху, доступные магазины снизу — не накладываются друг на друга.
+        // Правая колонка — карта + магазины
         var rightGrid = new Grid
         {
             RowDefinitions =
@@ -256,8 +260,22 @@ public class StorePage : ContentPage
             RowSpacing = 10
         };
 
-        rightGrid.Add(CreateMapCard(), 0, 0);
+        // ✅ НАСТОЯЩАЯ КАРТА (MiniMapView)
+        var mapProviders = IPlatformApplication.Current?.Services
+            .GetServices<IMapProvider>()?.ToList() ?? new List<IMapProvider>();
 
+        _miniMap = new Controls.MiniMapView(mapProviders);
+
+        var mapContainer = new Border
+        {
+            StrokeThickness = 1,
+            Stroke = Color.FromArgb("#29253A"),
+            StrokeShape = new RoundRectangle { CornerRadius = 20 },
+            Content = _miniMap
+        };
+        rightGrid.Add(mapContainer, 0, 0);
+
+        // Магазины под картой
         _storesListLayout = new VerticalStackLayout
         {
             Spacing = 2,
@@ -270,32 +288,17 @@ public class StorePage : ContentPage
             Stroke = Color.FromArgb("#29253A"),
             StrokeShape = new RoundRectangle { CornerRadius = 20 },
             BackgroundColor = Color.FromArgb("#151321"),
-            Content = _storesListLayout
+            Content = new ScrollView { Content = _storesListLayout, VerticalScrollBarVisibility = ScrollBarVisibility.Never }
         };
         rightGrid.Add(storesPanel, 0, 1);
+
         mainGrid.Add(rightGrid, 1, 0);
 
-        // Нижняя карточка шаблона — на всю ширину, как в концепте.
+        // === ШАБЛОН ===
         var templateIcon = CreateTintedIcon("icon_box.png", 31);
-        var templateTitle = new Label
-        {
-            Text = Loc.T("TemplateList"),
-            FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White
-        };
-        var templateDescription = new Label
-        {
-            Text = "Быстрый выбор товаров",
-            FontSize = 12,
-            TextColor = Color.FromArgb("#AAA3BD")
-        };
-        var templateText = new VerticalStackLayout
-        {
-            Spacing = 3,
-            VerticalOptions = LayoutOptions.Center,
-            Children = { templateTitle, templateDescription }
-        };
+        var templateTitle = new Label { Text = Loc.T("TemplateList"), FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Colors.White };
+        var templateDescription = new Label { Text = "Быстрый выбор товаров", FontSize = 12, TextColor = Color.FromArgb("#AAA3BD") };
+        var templateText = new VerticalStackLayout { Spacing = 3, VerticalOptions = LayoutOptions.Center, Children = { templateTitle, templateDescription } };
         var chevron = CreateTintedIcon("icon_chevron_right.png", 20);
         var templateGrid = new Grid
         {
@@ -332,13 +335,8 @@ public class StorePage : ContentPage
             Children = { header, searchFrame, mainGrid, templateCard }
         };
 
-        var scroll = new ScrollView
-        {
-            Content = pageContent,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Never
-        };
+        var scroll = new ScrollView { Content = pageContent, VerticalScrollBarVisibility = ScrollBarVisibility.Never };
 
-        // Нижняя навигация оставлена отдельным существующим компонентом без изменений.
         _rootGrid = new Grid
         {
             RowDefinitions =
@@ -365,13 +363,7 @@ public class StorePage : ContentPage
             Aspect = Aspect.AspectFit,
             VerticalOptions = LayoutOptions.Center
         };
-        try
-        {
-            image.Behaviors.Add(new IconTintColorBehavior
-            {
-                TintColor = ThemeManager.AccentColor
-            });
-        }
+        try { image.Behaviors.Add(new IconTintColorBehavior { TintColor = ThemeManager.AccentColor }); }
         catch { }
         return image;
     }
@@ -396,109 +388,50 @@ public class StorePage : ContentPage
                 LineBreakMode = LineBreakMode.TailTruncation
             }
         };
-    
-private Controls.MiniMapView? _miniMap;
-
-
-_miniMap = new Controls.MiniMapView(
-    IPlatformApplication.Current!.Services.GetServices<Services.Maps.IMapProvider>().ToList());
-var mapContainer = new Border
-{
-    StrokeThickness = 1,
-    StrokeShape = new RoundRectangle { CornerRadius = 20 },
-    HeightRequest = 260,
-    Content = _miniMap
-};
-mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
-
-
-    private static void AddMapRoad(AbsoluteLayout host, double x, double y, double width, double height, double thickness, string color)
-    {
-        var road = new BoxView
-        {
-            Color = Color.FromArgb(color),
-            HeightRequest = thickness,
-            WidthRequest = 1000,
-            Rotation = Math.Atan2(height, width) * 180 / Math.PI,
-            Opacity = 0.9
-        };
-        AbsoluteLayout.SetLayoutBounds(road, new Rect(x, y, 1000, thickness));
-        AbsoluteLayout.SetLayoutFlags(road, AbsoluteLayoutFlags.PositionProportional);
-        host.Children.Add(road);
     }
 
-    private static void AddMapPin(Grid map, double x, double y)
-    {
-        var pin = new Border
-        {
-            WidthRequest = 35,
-            HeightRequest = 35,
-            Stroke = Color.FromArgb("#D8B5FF"),
-            StrokeThickness = 2,
-            BackgroundColor = Color.FromArgb("#9D4DFF"),
-            StrokeShape = new RoundRectangle { CornerRadius = 18 },
-            Padding = 6,
-            Content = new Image
-            {
-                Source = "icon_shop_bag.png",
-                Aspect = Aspect.AspectFit
-            },
-            HorizontalOptions = LayoutOptions.Start,
-            VerticalOptions = LayoutOptions.Start
-        };
-        AbsoluteLayout.SetLayoutBounds(pin, new Rect(x, y, 35, 35));
-        AbsoluteLayout.SetLayoutFlags(pin, AbsoluteLayoutFlags.PositionProportional);
-        var layer = map.Children.OfType<AbsoluteLayout>().FirstOrDefault();
-        layer?.Children.Add(pin);
-    }
-
+    // === ЗАГРУЗКА МЕСТОПОЛОЖЕНИЯ И МАГАЗИНОВ ===
     private async Task LoadLocationAndStoresAsync()
-{
-    try
     {
-        // 1. Пытаемся получить GPS
-        var userLocation = await _storeService.GetCurrentLocationAsync();
-
-        if (userLocation == null)
+        try
         {
-            
-            _locText.Text = "GPS отключен";
-            _currentLocation = null;
-            _nearbyStores = Array.Empty<Services.Maps.NearbyStore>();
+            var userLocation = await _storeService.GetCurrentLocationAsync();
+
+            if (userLocation == null)
+            {
+                _locText.Text = "GPS отключен";
+                _currentLocation = null;
+                _nearbyStores = Array.Empty<NearbyStore>();
+                MainThread.BeginInvokeOnMainThread(RenderStores);
+                return;
+            }
+
+            _currentLocation = userLocation;
+
+            var city = await _storeService.GetCityNameAsync(userLocation);
+            _locText.Text = string.IsNullOrWhiteSpace(city) ? "Определено по GPS" : city;
+
+            _nearbyStores = await _storeSearch.FindAsync(
+                userLocation.Latitude,
+                userLocation.Longitude,
+                radiusMeters: 3000);
+
             MainThread.BeginInvokeOnMainThread(RenderStores);
-            return;
         }
-
-        _currentLocation = userLocation;
-
-        // 2. Получаем название города
-        var city = await _storeService.GetCityNameAsync(userLocation);
-        _locText.Text = string.IsNullOrWhiteSpace(city) ? "Определено по GPS" : city;
-
-        // 3. Ищем настоящие магазины через StoreSearchService
-        //    (кеш 15 мин, OSM → Yandex → 2GIS по приоритету)
-        _nearbyStores = await _storeSearch.FindAsync(
-            userLocation.Latitude,
-            userLocation.Longitude,
-            radiusMeters: 3000);
-
-        MainThread.BeginInvokeOnMainThread(RenderStores);
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Store] load error: {ex}");
+            _locText.Text = "Ошибка загрузки";
+            _nearbyStores = Array.Empty<NearbyStore>();
+            MainThread.BeginInvokeOnMainThread(RenderStores);
+        }
     }
-    catch (Exception ex)
-    {
-        System.Diagnostics.Debug.WriteLine($"[Store] load error: {ex}");
-        _locText.Text = "Ошибка загрузки";
-        _nearbyStores = Array.Empty<Services.Maps.NearbyStore>();
-        MainThread.BeginInvokeOnMainThread(RenderStores);
-    }
-}
 
     private async Task ShowCityPicker()
     {
         var cities = new[] { "Москва", "Чита", "Санкт-Петербург", "Казань", "Новосибирск" };
         var selected = await DisplayActionSheet("Выберите город", "Отмена", null, cities);
-        if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена")
-            return;
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена") return;
 
         _locText.Text = selected;
         _currentLocation = selected switch
@@ -513,7 +446,10 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
         if (_currentLocation != null)
         {
-            _nearbyStores = _storeService.GetNearbyStores(_currentLocation);
+            _nearbyStores = await _storeSearch.FindAsync(
+                _currentLocation.Latitude,
+                _currentLocation.Longitude,
+                radiusMeters: 3000);
             RenderStores();
         }
     }
@@ -530,7 +466,14 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
             var lat = _currentLocation.Latitude.ToString(CultureInfo.InvariantCulture);
             var lon = _currentLocation.Longitude.ToString(CultureInfo.InvariantCulture);
-            var uri = $"https://www.google.com/maps/search/?api=1&query={lat},{lon}";
+
+            string uri = MapConfig.Preferred switch
+            {
+                MapProviderType.Yandex => $"https://yandex.ru/maps/?pt={lon},{lat}&z=15&l=map",
+                MapProviderType.TwoGis => $"https://2gis.ru/geo/{lon},{lat}",
+                _ => $"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+            };
+
             await Launcher.Default.OpenAsync(uri);
         }
         catch (Exception ex)
@@ -539,46 +482,23 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         }
     }
 
+    // === СПИСОК ПОКУПОК ===
     private async Task ShowAddItemPopup()
     {
         try
         {
-            var name = await DisplayPromptAsync(
-                "Добавить товар",
-                "Введите название продукта:",
-                "Далее",
-                "Отмена",
-                "Например, Молоко",
-                maxLength: 80);
+            var name = await DisplayPromptAsync("Добавить товар", "Введите название продукта:", "Далее", "Отмена", "Например, Молоко", maxLength: 80);
+            if (string.IsNullOrWhiteSpace(name)) return;
 
-            if (string.IsNullOrWhiteSpace(name))
-                return;
-
-            var quantity = await DisplayPromptAsync(
-                "Количество",
-                "Укажите количество:",
-                "Сохранить",
-                "Отмена",
-                "Например, 2 шт. или 1 кг",
-                initialValue: "1 шт.",
-                maxLength: 30);
-
-            if (quantity == null)
-                return;
+            var quantity = await DisplayPromptAsync("Количество", "Укажите количество:", "Сохранить", "Отмена", "Например, 2 шт. или 1 кг", initialValue: "1 шт.", maxLength: 30);
+            if (quantity == null) return;
 
             var emojiOptions = new[] { "🥛", "🍞", "🥩", "🍎", "💧", "🧀", "🥚", "🍫", "🛒" };
             var emoji = await DisplayActionSheet("Выберите значок товара", "Отмена", null, emojiOptions);
-            if (string.IsNullOrWhiteSpace(emoji) || emoji == "Отмена")
-                emoji = "🛒";
+            if (string.IsNullOrWhiteSpace(emoji) || emoji == "Отмена") emoji = "🛒";
 
             var price = _priceService?.GetPrice(name) ?? 0;
-            _shoppingItems.Add(new ShoppingItem
-            {
-                Name = name.Trim(),
-                Quantity = quantity.Trim(),
-                Emoji = emoji,
-                Price = price
-            });
+            _shoppingItems.Add(new ShoppingItem { Name = name.Trim(), Quantity = quantity.Trim(), Emoji = emoji, Price = price });
 
             SaveShoppingList();
             RenderShoppingList();
@@ -599,14 +519,14 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         }
 
         var confirm = await DisplayAlert("Удаление", $"Удалить отмеченные товары ({checkedCount})?", "Удалить", "Отмена");
-        if (!confirm)
-            return;
+        if (!confirm) return;
 
         _shoppingItems.RemoveAll(item => item.IsChecked);
         SaveShoppingList();
         RenderShoppingList();
     }
 
+    // === ШАБЛОНЫ ===
     private async Task ShowTemplatesPopup()
     {
         var customTemplates = LoadCustomTemplates();
@@ -616,8 +536,7 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         options.Add("Отмена");
 
         var selected = await DisplayActionSheet("Шаблоны покупок", "Отмена", null, options.ToArray());
-        if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена")
-            return;
+        if (string.IsNullOrWhiteSpace(selected) || selected == "Отмена") return;
 
         if (selected == "Создать свой шаблон")
         {
@@ -626,15 +545,11 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         }
 
         List<ShoppingItem> templateItems;
-        if (selected == "Классический")
-            templateItems = _storeService.GetTemplate("Базовый");
-        else if (selected == "Для пикника")
-            templateItems = _storeService.GetTemplate("Для пикника");
-        else
-            templateItems = customTemplates.FirstOrDefault(t => t.Name == selected)?.Items ?? new List<ShoppingItem>();
+        if (selected == "Классический") templateItems = _storeService.GetTemplate("Базовый");
+        else if (selected == "Для пикника") templateItems = _storeService.GetTemplate("Для пикника");
+        else templateItems = customTemplates.FirstOrDefault(t => t.Name == selected)?.Items ?? new List<ShoppingItem>();
 
-        if (templateItems.Count == 0)
-            return;
+        if (templateItems.Count == 0) return;
 
         foreach (var item in templateItems)
         {
@@ -653,42 +568,17 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
     private async Task CreateCustomTemplate()
     {
-        var templateName = await DisplayPromptAsync(
-            "Новый шаблон",
-            "Название шаблона:",
-            "Продолжить",
-            "Отмена",
-            "Например, Еженедельные покупки",
-            maxLength: 50);
-
-        if (string.IsNullOrWhiteSpace(templateName))
-            return;
+        var templateName = await DisplayPromptAsync("Новый шаблон", "Название шаблона:", "Продолжить", "Отмена", "Например, Еженедельные покупки", maxLength: 50);
+        if (string.IsNullOrWhiteSpace(templateName)) return;
 
         var templateItems = new List<ShoppingItem>();
         while (true)
         {
-            var name = await DisplayPromptAsync(
-                "Товары шаблона",
-                "Введите название товара. Оставьте поле пустым, чтобы закончить:",
-                "Добавить",
-                "Готово",
-                "Название товара",
-                maxLength: 80);
+            var name = await DisplayPromptAsync("Товары шаблона", "Введите название товара. Оставьте поле пустым, чтобы закончить:", "Добавить", "Готово", "Название товара", maxLength: 80);
+            if (string.IsNullOrWhiteSpace(name)) break;
 
-            if (string.IsNullOrWhiteSpace(name))
-                break;
-
-            var quantity = await DisplayPromptAsync(
-                "Количество",
-                $"Количество для «{name.Trim()}»:",
-                "Добавить",
-                "Завершить",
-                "Например, 1 шт.",
-                initialValue: "1 шт.",
-                maxLength: 30);
-
-            if (quantity == null)
-                break;
+            var quantity = await DisplayPromptAsync("Количество", $"Количество для «{name.Trim()}»:", "Добавить", "Завершить", "Например, 1 шт.", initialValue: "1 шт.", maxLength: 30);
+            if (quantity == null) break;
 
             templateItems.Add(new ShoppingItem
             {
@@ -699,8 +589,7 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
             });
 
             var more = await DisplayAlert("Шаблон", "Добавить ещё один товар?", "Добавить", "Сохранить");
-            if (!more)
-                break;
+            if (!more) break;
         }
 
         if (templateItems.Count == 0)
@@ -717,13 +606,7 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         var addNow = await DisplayAlert("Шаблон сохранён", "Добавить его товары в текущий список?", "Добавить", "Позже");
         if (addNow)
         {
-            _shoppingItems.AddRange(templateItems.Select(i => new ShoppingItem
-            {
-                Name = i.Name,
-                Quantity = i.Quantity,
-                Emoji = i.Emoji,
-                Price = i.Price
-            }));
+            _shoppingItems.AddRange(templateItems.Select(i => new ShoppingItem { Name = i.Name, Quantity = i.Quantity, Emoji = i.Emoji, Price = i.Price }));
             SaveShoppingList();
             RenderShoppingList();
         }
@@ -738,10 +621,7 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
                 ? new List<SavedTemplate>()
                 : JsonSerializer.Deserialize<List<SavedTemplate>>(json) ?? new List<SavedTemplate>();
         }
-        catch
-        {
-            return new List<SavedTemplate>();
-        }
+        catch { return new List<SavedTemplate>(); }
     }
 
     private static string GuessEmoji(string name)
@@ -756,15 +636,14 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         return "🛒";
     }
 
+    // === РЕНДЕР ===
     private void RenderShoppingList()
     {
-        if (_shopItemsContainer == null)
-            return;
-
+        if (_shopItemsContainer == null) return;
         _shopItemsContainer.Children.Clear();
+
         var filtered = _shoppingItems
-            .Where(item => string.IsNullOrWhiteSpace(_searchText)
-                || item.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            .Where(item => string.IsNullOrWhiteSpace(_searchText) || item.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (filtered.Count == 0)
@@ -782,26 +661,10 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
         foreach (var item in filtered)
         {
-            var check = new CheckBox
-            {
-                Color = Color.FromArgb("#A978F5"),
-                IsChecked = item.IsChecked,
-                VerticalOptions = LayoutOptions.Center,
-                Scale = 0.9
-            };
-            check.CheckedChanged += (_, e) =>
-            {
-                item.IsChecked = e.Value;
-                SaveShoppingList();
-                RenderShoppingList();
-            };
+            var check = new CheckBox { Color = Color.FromArgb("#A978F5"), IsChecked = item.IsChecked, VerticalOptions = LayoutOptions.Center, Scale = 0.9 };
+            check.CheckedChanged += (_, e) => { item.IsChecked = e.Value; SaveShoppingList(); RenderShoppingList(); };
 
-            var icon = new Label
-            {
-                Text = item.Emoji,
-                FontSize = 23,
-                VerticalOptions = LayoutOptions.Center
-            };
+            var icon = new Label { Text = item.Emoji, FontSize = 23, VerticalOptions = LayoutOptions.Center };
             var title = new Label
             {
                 Text = item.Name,
@@ -811,14 +674,7 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
                 VerticalOptions = LayoutOptions.Center,
                 LineBreakMode = LineBreakMode.TailTruncation
             };
-            var quantity = new Label
-            {
-                Text = item.Quantity,
-                FontSize = 11,
-                TextColor = Color.FromArgb("#B7B0C8"),
-                VerticalOptions = LayoutOptions.Center,
-                HorizontalTextAlignment = TextAlignment.End
-            };
+            var quantity = new Label { Text = item.Quantity, FontSize = 11, TextColor = Color.FromArgb("#B7B0C8"), VerticalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.End };
 
             var row = new Grid
             {
@@ -842,11 +698,23 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
     private void RenderStores()
     {
-        if (_storesListLayout == null)
-            return;
-
+        if (_storesListLayout == null) return;
         _storesListLayout.Children.Clear();
 
+        // ✅ Обновляем карту
+        if (_miniMap != null && _currentLocation != null)
+        {
+            var markers = new List<MapMarker>
+            {
+                new(_currentLocation.Latitude, _currentLocation.Longitude, "Вы здесь", null, true)
+            };
+            foreach (var s in _nearbyStores)
+                markers.Add(new MapMarker(s.Lat, s.Lng, s.Name, s.Address));
+
+            _miniMap.Show(_currentLocation.Latitude, _currentLocation.Longitude, 15, markers);
+        }
+
+        // Заголовок
         var header = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(0, 0, 0, 5) };
         header.Children.Add(CreateTintedIcon("icon_store.png", 21));
         header.Children.Add(new Label
@@ -859,26 +727,39 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         });
         _storesListLayout.Children.Add(header);
 
-        var stores = _nearbyStores
-            .Where(store => string.IsNullOrWhiteSpace(_searchText)
-                || store.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
-                || store.Address.Contains(_searchText, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        if (stores.Count == 0)
+        // Пустые состояния
+        if (_currentLocation == null)
         {
             _storesListLayout.Children.Add(new Label
             {
-                Text = "Магазины не найдены",
+                Text = "Включите GPS, чтобы найти магазины рядом",
                 FontSize = 11,
                 TextColor = Color.FromArgb("#938DA5")
             });
             return;
         }
 
-        foreach (var store in stores)
+        if (_nearbyStores.Count == 0)
         {
-            var logoText = store.Logo;
+            _storesListLayout.Children.Add(new Label
+            {
+                Text = "Магазины не найдены в радиусе 3 км",
+                FontSize = 11,
+                TextColor = Color.FromArgb("#938DA5")
+            });
+            return;
+        }
+
+        var filtered = _nearbyStores
+            .Where(s => string.IsNullOrWhiteSpace(_searchText)
+                || s.Name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)
+                || (s.Address ?? "").Contains(_searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var store in filtered)
+        {
+            var logoText = string.IsNullOrEmpty(store.Name) ? "?" : store.Name[0].ToString().ToUpper();
+
             var brand = new Border
             {
                 WidthRequest = 31,
@@ -889,7 +770,7 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
                 Content = new Label
                 {
                     Text = logoText,
-                    TextColor = store.Name.Contains("Пятёрочка") ? Color.FromArgb("#E33D4E") : Color.FromArgb("#D83A43"),
+                    TextColor = Color.FromArgb("#D83A43"),
                     FontAttributes = FontAttributes.Bold,
                     FontSize = 14,
                     HorizontalTextAlignment = TextAlignment.Center,
@@ -905,9 +786,14 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
                 VerticalOptions = LayoutOptions.Center,
                 LineBreakMode = LineBreakMode.TailTruncation
             };
+
+            var distanceText = store.DistanceMeters is { } d
+                ? (d < 1000 ? $"{d:F0} м  ›" : $"{d / 1000:F1} км  ›")
+                : "›";
+
             var distance = new Label
             {
-                Text = $"{store.DistanceKm.ToString("0.0", CultureInfo.InvariantCulture)} км  ›",
+                Text = distanceText,
                 FontSize = 11,
                 TextColor = Color.FromArgb("#B8A6D6"),
                 VerticalOptions = LayoutOptions.Center
@@ -927,27 +813,27 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
             row.Add(brand, 0, 0);
             row.Add(name, 1, 0);
             row.Add(distance, 2, 0);
+
+            var captured = store;
             row.GestureRecognizers.Add(new TapGestureRecognizer
             {
-                Command = new Command(async () => await OpenStoreMap(store))
+                Command = new Command(async () => await OpenStoreMap(captured))
             });
             _storesListLayout.Children.Add(row);
         }
     }
 
-    private async Task OpenStoreMap(StoreModel store)
+    private async Task OpenStoreMap(NearbyStore store)
     {
         try
         {
-            var location = store.Location;
-            var lat = location.Latitude.ToString(CultureInfo.InvariantCulture);
-            var lon = location.Longitude.ToString(CultureInfo.InvariantCulture);
-            var preferredMap = Preferences.Default.Get("preferred_map", "Google");
+            var lat = store.Lat.ToString(CultureInfo.InvariantCulture);
+            var lon = store.Lng.ToString(CultureInfo.InvariantCulture);
 
-            string uri = preferredMap switch
+            string uri = MapConfig.Preferred switch
             {
-                "Яндекс" => $"https://yandex.ru/maps/?pt={lon},{lat}&z=18&l=map",
-                "2GIS" => $"https://2gis.ru/geo/{lon},{lat}",
+                MapProviderType.Yandex => $"https://yandex.ru/maps/?pt={lon},{lat}&z=18&l=map",
+                MapProviderType.TwoGis => $"https://2gis.ru/geo/{lon},{lat}",
                 _ => $"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
             };
             await Launcher.Default.OpenAsync(uri);
@@ -956,5 +842,20 @@ mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
         {
             await DisplayAlert("Карта", $"Не удалось открыть магазин на карте: {ex.Message}", "OK");
         }
+    }
+
+    protected override void OnNavigatedTo(NavigatedToEventArgs args)
+    {
+        base.OnNavigatedTo(args);
+        if (Content == null) return;
+        Content.GestureRecognizers.Clear();
+
+        var swipeL = new SwipeGestureRecognizer { Direction = SwipeDirection.Left };
+        swipeL.Swiped += (_, _) => BottomNavBar.SwitchToTab(2, _repo);
+        Content.GestureRecognizers.Add(swipeL);
+
+        var swipeR = new SwipeGestureRecognizer { Direction = SwipeDirection.Right };
+        swipeR.Swiped += (_, _) => BottomNavBar.SwitchToTab(0, _repo);
+        Content.GestureRecognizers.Add(swipeR);
     }
 }
