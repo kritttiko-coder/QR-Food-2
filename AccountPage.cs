@@ -96,7 +96,7 @@ public class AccountPage : ContentPage
         content.Children.Add(new Label { Text = Loc.T("Profile"), FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 10, 0, 0) });
         var profileList = new VerticalStackLayout { Spacing = 1 };
         
-        // ✅ Кнопка "Изменить имя" теперь рабочая
+        //  Кнопка "Изменить имя" теперь рабочая
         profileList.Children.Add(CreateListItem("icon_account.png", Loc.T("ChangeName"), _userName, async () => await ShowEditProfilePopup()));
         profileList.Children.Add(CreateListItem("icon_brush.png", Loc.T("Appearance"), Loc.T("AppearanceDesc"), async () => await Navigation.PushAsync(new CustomizationPage())));
         
@@ -107,7 +107,7 @@ public class AccountPage : ContentPage
         content.Children.Add(new Label { Text = Loc.T("More"), FontSize = 16, FontAttributes = FontAttributes.Bold, Margin = new Thickness(0, 10, 0, 0) });
         var moreList = new VerticalStackLayout { Spacing = 1 };
         
-        // ✅ Новая кнопка "Сменить карту"
+        //  Новая кнопка "Сменить карту"
         string currentMap = Preferences.Default.Get("preferred_map", "Google");
         moreList.Children.Add(CreateListItem("icon_map.png", "Сменить карту", currentMap, async () => await ShowMapSelectionPopup()));
         
@@ -147,7 +147,7 @@ public class AccountPage : ContentPage
         ThemeManager.Apply();
     }
 
-    // ✅ КРАСИВОЕ ОКНО РЕДАКТИРОВАНИЯ ПРОФИЛЯ
+    //  КРАСИВОЕ ОКНО РЕДАКТИРОВАНИЯ ПРОФИЛЯ
     private async Task ShowEditProfilePopup()
     {
         var overlay = new Grid { BackgroundColor = Color.FromRgba(0,0,0,0.7), ZIndex = 100 };
@@ -235,66 +235,34 @@ public class AccountPage : ContentPage
         _rootGrid.Remove(overlay);
     }
 
-    // ✅ КРАСИВОЕ ОКНО ВЫБОРА КАРТЫ
+    //  КРАСИВОЕ ОКНО ВЫБОРА КАРТЫ
     private async Task ShowMapSelectionPopup()
+{
+    var allProviders = new[]
     {
-        var overlay = new Grid { BackgroundColor = Color.FromRgba(0,0,0,0.7), ZIndex = 100 };
+        (Type: Services.Maps.MapProviderType.Osm,    Name: "OpenStreetMap"),
+        (Type: Services.Maps.MapProviderType.Yandex, Name: "Яндекс.Карты"),
+        (Type: Services.Maps.MapProviderType.TwoGis, Name: "2GIS"),
+        (Type: Services.Maps.MapProviderType.Mapbox, Name: "Mapbox (не настроен)"),
+        (Type: Services.Maps.MapProviderType.Google, Name: "Google (не настроен)")
+    };
+
+    var current = Services.Maps.MapConfig.Preferred;
+    var names = allProviders.Select(p => p.Name).ToArray();
+    var selected = await DisplayActionSheet(
+        $"Текущая карта: {allProviders.First(p => p.Type == current).Name}",
+        "Отмена", null, names);
+
+    if (selected == null || selected == "Отмена") return;
+
+    var chosen = allProviders.First(p => p.Name == selected);
+    Services.Maps.MapConfig.SetPreferred(chosen.Type);
+
+    // Перерисовываем Account (сохранение синхронизируется через Preferences)
+    Content = null;
+    BuildUI();
+}
         
-        var popup = new Border 
-        { 
-            StrokeThickness = 2, Stroke = ThemeManager.AccentColor, 
-            StrokeShape = new RoundRectangle { CornerRadius = 20 }, 
-            BackgroundColor = Color.FromArgb("#201D28"), 
-            Padding = 20, VerticalOptions = LayoutOptions.Center, HorizontalOptions = LayoutOptions.Center,
-            WidthRequest = 300
-        };
-
-        string currentMap = Preferences.Default.Get("preferred_map", "Google");
-
-        // Функция для создания кнопки карты
-        View CreateMapOption(string name, string icon)
-        {
-            bool isSelected = currentMap == name;
-            var stack = new HorizontalStackLayout { Spacing = 12, VerticalOptions = LayoutOptions.Center };
-            stack.Children.Add(new Label { Text = icon, FontSize = 24 });
-            stack.Children.Add(new Label { Text = name, FontSize = 16, TextColor = isSelected ? ThemeManager.AccentColor : Colors.White, VerticalOptions = LayoutOptions.Center });
-            
-            if (isSelected) stack.Children.Add(new Label { Text = "✓", TextColor = ThemeManager.AccentColor, FontSize = 18, VerticalOptions = LayoutOptions.Center });
-            
-            var border = new Border { Padding = 12, StrokeShape = new RoundRectangle { CornerRadius = 12 }, Stroke = isSelected ? ThemeManager.AccentColor : Colors.Transparent, StrokeThickness = isSelected ? 1 : 0, BackgroundColor = Color.FromArgb("#2A2A35"), Content = stack };
-            
-            border.GestureRecognizers.Add(new TapGestureRecognizer 
-            { 
-                Command = new Command(() => 
-                {
-                    Preferences.Default.Set("preferred_map", name);
-                    // Закрываем поп-ап и перерисовываем страницу (чтобы обновить галочку)
-                    BuildUI(); 
-                }) 
-            });
-            return border;
-        }
-
-        var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(new Label { Text = "Выберите карту", FontSize = 18, FontAttributes = FontAttributes.Bold, HorizontalTextAlignment = TextAlignment.Center, TextColor = Colors.White });
-        stack.Children.Add(CreateMapOption("Google", "🌍"));
-        stack.Children.Add(CreateMapOption("Яндекс", "🟡"));
-        stack.Children.Add(CreateMapOption("2GIS", "🟢"));
-        
-        var btnClose = new Border { BackgroundColor = Colors.Transparent, StrokeShape = new RoundRectangle { CornerRadius = 10 }, Padding = new Thickness(0, 10), Content = new Label { Text = "Закрыть", TextColor = Colors.Gray, HorizontalOptions = LayoutOptions.Center } };
-        stack.Children.Add(btnClose);
-
-        popup.Content = stack;
-        overlay.Add(popup);
-        _rootGrid.Add(overlay);
-
-        var tcs = new TaskCompletionSource<bool>();
-        btnClose.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => tcs.SetResult(true)) });
-
-        await tcs.Task;
-        _rootGrid.Remove(overlay);
-    }
-
     private Border CreateCard()
     {
         var b = new Border { StrokeThickness = 1, StrokeShape = new RoundRectangle { CornerRadius = 16 }, Padding = 16 };
