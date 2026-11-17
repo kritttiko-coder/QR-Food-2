@@ -396,63 +396,21 @@ public class StorePage : ContentPage
                 LineBreakMode = LineBreakMode.TailTruncation
             }
         };
-    }
+    
+private Controls.MiniMapView? _miniMap;
 
-    private View CreateMapCard()
-    {
-        // Стилизованная заглушка карты: сохраняет композицию макета,
-        // пока в проект не подключён источник картографических тайлов.
-        var map = new Grid
-        {
-            BackgroundColor = Color.FromArgb("#182039"),
-            Clip = new RoundRectangleGeometry { CornerRadius = new CornerRadius(20) }
-        };
 
-        var roads = new AbsoluteLayout();
-        AddMapRoad(roads, 0.10, 0.22, 0.90, 0.34, 5, "#34415F");
-        AddMapRoad(roads, 0.02, 0.68, 0.95, 0.52, 4, "#46516C");
-        AddMapRoad(roads, 0.20, 0.02, 0.54, 0.96, 3, "#303B59");
-        AddMapRoad(roads, 0.76, 0.02, 0.22, 0.94, 3, "#3A4564");
-        AddMapRoad(roads, 0.02, 0.42, 0.92, 0.18, 2, "#283652");
-        map.Add(roads);
+_miniMap = new Controls.MiniMapView(
+    IPlatformApplication.Current!.Services.GetServices<Services.Maps.IMapProvider>().ToList());
+var mapContainer = new Border
+{
+    StrokeThickness = 1,
+    StrokeShape = new RoundRectangle { CornerRadius = 20 },
+    HeightRequest = 260,
+    Content = _miniMap
+};
+mapContainer.SetDynamicResource(Border.StrokeProperty, ThemeManager.Border);
 
-        AddMapPin(map, 0.22, 0.30);
-        AddMapPin(map, 0.72, 0.23);
-        AddMapPin(map, 0.82, 0.58);
-        AddMapPin(map, 0.20, 0.72);
-        AddMapPin(map, 0.67, 0.86);
-
-        var current = new Border
-        {
-            WidthRequest = 22,
-            HeightRequest = 22,
-            Stroke = Color.FromArgb("#A978F5"),
-            StrokeThickness = 3,
-            BackgroundColor = Color.FromArgb("#3188FF"),
-            StrokeShape = new Ellipse(),
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center
-        };
-        var currentHalo = new Border
-        {
-            WidthRequest = 76,
-            HeightRequest = 76,
-            StrokeThickness = 0,
-            BackgroundColor = Color.FromRgba(49, 136, 255, 0.15f),
-            StrokeShape = new Ellipse(),
-            HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center,
-            Content = current
-        };
-        map.Add(currentHalo);
-        return new Border
-        {
-            StrokeThickness = 1,
-            Stroke = Color.FromArgb("#29253A"),
-            StrokeShape = new RoundRectangle { CornerRadius = 20 },
-            Content = map
-        };
-    }
 
     private static void AddMapRoad(AbsoluteLayout host, double x, double y, double width, double height, double thickness, string color)
     {
@@ -495,33 +453,45 @@ public class StorePage : ContentPage
     }
 
     private async Task LoadLocationAndStoresAsync()
+{
+    try
     {
-        try
+        // 1. Пытаемся получить GPS
+        var userLocation = await _storeService.GetCurrentLocationAsync();
+
+        if (userLocation == null)
         {
-            var userLocation = await _storeService.GetCurrentLocationAsync();
-            if (userLocation != null)
-            {
-                _currentLocation = userLocation;
-                var city = await _storeService.GetCityNameAsync(userLocation);
-                _locText.Text = city;
-                _nearbyStores = _storeService.GetNearbyStores(userLocation);
-            }
-            else
-            {
-                _locText.Text = "Чита";
-                _currentLocation = new Location(52.0340, 113.4994);
-                _nearbyStores = _storeService.GetNearbyStores(_currentLocation);
-            }
+            
+            _locText.Text = "GPS отключен";
+            _currentLocation = null;
+            _nearbyStores = Array.Empty<Services.Maps.NearbyStore>();
             MainThread.BeginInvokeOnMainThread(RenderStores);
+            return;
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Store location load error: {ex}");
-            _locText.Text = "Чита";
-            _nearbyStores = new List<StoreModel>();
-            RenderStores();
-        }
+
+        _currentLocation = userLocation;
+
+        // 2. Получаем название города
+        var city = await _storeService.GetCityNameAsync(userLocation);
+        _locText.Text = string.IsNullOrWhiteSpace(city) ? "Определено по GPS" : city;
+
+        // 3. Ищем настоящие магазины через StoreSearchService
+        //    (кеш 15 мин, OSM → Yandex → 2GIS по приоритету)
+        _nearbyStores = await _storeSearch.FindAsync(
+            userLocation.Latitude,
+            userLocation.Longitude,
+            radiusMeters: 3000);
+
+        MainThread.BeginInvokeOnMainThread(RenderStores);
     }
+    catch (Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine($"[Store] load error: {ex}");
+        _locText.Text = "Ошибка загрузки";
+        _nearbyStores = Array.Empty<Services.Maps.NearbyStore>();
+        MainThread.BeginInvokeOnMainThread(RenderStores);
+    }
+}
 
     private async Task ShowCityPicker()
     {
