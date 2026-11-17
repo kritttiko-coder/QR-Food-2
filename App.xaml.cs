@@ -6,7 +6,8 @@ public partial class App : Application
 {
     public App()
     {
-        InitializeComponent();
+
+    _ = Task.Run(SecretsLoader.LoadAsync);  // в фоне, не блокирует UI
 
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
