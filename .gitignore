@@ -1,0 +1,21 @@
+# Секреты
+appsettings.local.json
+secrets.json
+.env
+*.local.json
+*.secret
+*.user
+keys.properties
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Сборка
+bin/
+obj/
+*.apk
+*.aab
