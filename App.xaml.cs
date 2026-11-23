@@ -6,9 +6,6 @@ public partial class App : Application
 {
     public App()
     {
-
-    _ = Task.Run(SecretsLoader.LoadAsync);  // в фоне, не блокирует UI
-
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
         {
             var ex = e.ExceptionObject as Exception;
