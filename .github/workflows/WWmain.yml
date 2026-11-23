@@ -1,15 +1,26 @@
-
-name: Build FoodExpiryApp 
+name: Build FoodExpiryApp Android APK
 
 on:
   workflow_dispatch:
-  
+  push:
+    branches:
+      - main
+    paths:
+      - '**.cs'
+      - '**.csproj'
+      - '**.xaml'
+      - '.github/workflows/**'
+
 permissions:
   contents: read
 
 jobs:
   build:
     runs-on: windows-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout repository
@@ -44,6 +55,15 @@ jobs:
           dotnet restore FoodExpiryApp.csproj `
             -p:CheckEolWorkloads=false
 
+      # НОВЫЙ ШАГ: восстанавливаем keystore из Secrets
+      # Нужен, только если ты подписываешь своим ключом (стабильный SHA-1 для Yandex/2GIS)
+      - name: Decode release keystore
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.RELEASE_KEYSTORE_BASE64 }}")
+          [IO.File]::WriteAllBytes("${{ github.workspace }}\release.keystore", $bytes)
+
+      # ДОПОЛНЕННЫЙ ШАГ: env с ключами
       - name: Build APK
         shell: pwsh
         run: |
@@ -52,9 +72,20 @@ jobs:
             -c Release `
             -p:AndroidPackageFormat=apk `
             -p:CheckEolWorkloads=false `
+            -p:AndroidKeyStore=true `
+            -p:AndroidSigningKeyStore=release.keystore `
+            -p:AndroidSigningStorePass=${{ secrets.RELEASE_KEYSTORE_PASSWORD }} `
+            -p:AndroidSigningKeyAlias=${{ secrets.RELEASE_KEY_ALIAS }} `
+            -p:AndroidSigningKeyPass=${{ secrets.RELEASE_KEY_PASSWORD }} `
             --no-restore
+        env:
+          YANDEX_JS_KEY: ${{ secrets.YANDEX_JS_KEY }}
+          YANDEX_GEO_KEY: ${{ secrets.YANDEX_GEO_KEY }}
+          TWO_GIS_MAP_KEY: ${{ secrets.TWO_GIS_MAP_KEY }}
+          TWO_GIS_CATALOG_KEY: ${{ secrets.TWO_GIS_CATALOG_KEY }}
+          MAPBOX_KEY: ${{ secrets.MAPBOX_KEY }}
 
-      - name: Upload APK
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
           name: FoodExpiryApp-Android-APK
