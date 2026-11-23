@@ -32,6 +32,13 @@ public static class MauiProgram
         builder.Services.AddSingleton<Services.Maps.PlacesCache>();
         builder.Services.AddSingleton<Services.Maps.StoreSearchService>();
 
+        // Ключи
+string yandexJs = ApiKeys.YandexJs;
+string yandexGeo = ApiKeys.YandexGeo;
+string twoGisMap = ApiKeys.TwoGisMap;
+string twoGisCat = ApiKeys.TwoGisCatalog;
+string mapboxToken = ApiKeys.Mapbox;
+
         // === Map-провайдеры ===
         builder.Services.AddSingleton<Services.Maps.IMapProvider, Services.Maps.Providers.OsmMapProvider>();
         builder.Services.AddSingleton<Services.Maps.IMapProvider, Services.Maps.Providers.YandexMapProvider>();
